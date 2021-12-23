@@ -1,69 +1,112 @@
-use bevy::{
-    prelude::*,
-    render::pass::ClearColor,
-};
+use bevy::prelude::*;
+use bevy_retrograde::prelude::*;
 
-/// An implementation of the classic game "Breakout"
 fn main() {
     App::build()
-        .add_plugins(DefaultPlugins)
-        .insert_resource(ClearColor(Color::rgb(0.9, 0.9, 0.9)))
+        .add_plugins(RetroPlugins)
         .add_startup_system(setup.system())
-        .add_system(paddle_movement_system.system())
+    	.add_system(move_player.system())
         .run();
 }
+struct Player;
 
-struct Ball {
-    speed: f32,
-}
 
 fn setup(
     mut commands: Commands,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    //asset_server: Res<AssetServer>,
+    asset_server: Res<AssetServer>,
 ) {
-    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
-    commands.spawn_bundle(UiCameraBundle::default());
-    // paddle
-    commands
-    .spawn_bundle(SpriteBundle {
-        material: materials.add(Color::rgb(1.0, 0.5, 0.5).into()),
-        transform: Transform::from_xyz(0.0, -50.0, 1.0),
-        sprite: Sprite::new(Vec2::new(30.0, 30.0)),
+    commands.spawn_bundle(CameraBundle {
+        camera: Camera {
+            size: CameraSize::FixedHeight(200),
+            background_color: Color::new(1.0, 1.0, 1.0, 1.0),
+            ..Default::default()
+        },
+        transform: Transform::from_xyz(0., -50., 0.),
         ..Default::default()
-    })
-        .insert(Ball { speed: 500.0 });
+    });
+
+    let player = asset_server.load("player.png");
+    let block = asset_server.load("block.png");
+
+    let mut n = -100.0;
+
+    while n < 100.0 {
+        commands
+        // First we spawn a sprite bundle like normal
+        .spawn_bundle(SpriteBundle {
+            image: block.clone(),
+            transform: Transform::from_xyz(n, 20.0, 0.),
+            ..Default::default()
+        })
+        // Then we add a tesselated collider component. This will create a convex collision shape
+        // from the provided image automatically.
+        .insert(TesselatedCollider {
+            // We want to use the same block we use for the visual for the collider shape
+            image: block.clone(),
+            ..Default::default()
+        })
+        // Make it a static body
+        .insert(RigidBody::Static);
+        n += 20.0;
+    }
+
+    commands
+        .spawn_bundle(SpriteBundle {
+            image: player.clone(),
+            sprite: Sprite {
+                pixel_perfect: true,
+                ..Default::default()
+            },
+            transform: Transform::from_xyz(0., -50., 0.),
+            ..Default::default()
+        })
+        .insert(TesselatedCollider {
+            image: player.clone(),
+            tesselator_config: TesselatedColliderConfig {
+                // We want the collision shape for the player to be highly accurate
+                vertice_separation: 0.,
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        // The player is also a dynamic body with rotations locked
+        .insert(RigidBody::Dynamic)
+        .insert(RotationConstraints::lock())
+        // Disable friction and bounciness
+        .insert(PhysicMaterial {
+            friction: 0.,
+            restitution: 0.,
+            ..Default::default()
+        })
+        // Set the player speed to 0 initially
+        .insert(Velocity::from_linear(Vec3::default()))
+        .insert(Player);
+    
 }
 
-fn paddle_movement_system(
-    time: Res<Time>,
-    keyboard_input: Res<Input<KeyCode>>,
-    mut query: Query<(&Ball, &mut Transform)>,
-) {
-    if let Ok((paddle, mut transform)) = query.single_mut() {
-        let mut direction_x = 0.0;
-        let mut direction_y = 0.0;
+fn move_player(keyboard_input: Res<Input<KeyCode>>, mut query: Query<&mut Velocity, With<Player>>) {
+    for mut velocity in query.iter_mut() {
+        const SPEED: f32 = 100.;
+
+        let mut direction = Vec3::new(0., 0., 0.);
+
         if keyboard_input.pressed(KeyCode::Left) {
-            direction_x -= 1.0;
+            direction += Vec3::new(-SPEED, 0., 0.);
         }
 
         if keyboard_input.pressed(KeyCode::Right) {
-            direction_x += 1.0;
-        }
-
-        if keyboard_input.pressed(KeyCode::Down) {
-            direction_y -= 1.0;
+            direction += Vec3::new(SPEED, 0., 0.);
         }
 
         if keyboard_input.pressed(KeyCode::Up) {
-            direction_y += 1.0;
+            direction += Vec3::new(0., -SPEED, 0.);
         }
 
-        let translation = &mut transform.translation;
-        // move the paddle horizontally
-        translation.x += time.delta_seconds() * direction_x * paddle.speed;
-        translation.y += time.delta_seconds() * direction_y * paddle.speed;
-        // bound the paddle within the walls
-        //translation.x = translation.x.min(380.0).max(-380.0);
+        if keyboard_input.pressed(KeyCode::Down) {
+            direction += Vec3::new(0., SPEED, 0.);
+        }
+
+        *velocity = Velocity::from_linear(direction);
     }
 }
+
