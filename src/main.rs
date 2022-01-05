@@ -88,25 +88,36 @@ fn move_player(keyboard_input: Res<Input<KeyCode>>, mut query: Query<&mut Veloci
     for mut velocity in query.iter_mut() {
         const SPEED: f32 = 100.;
 
+        let mut multipleCheck = -1;
+
         let mut direction = Vec3::new(0., 0., 0.);
 
         if keyboard_input.pressed(KeyCode::Left) {
-            direction += Vec3::new(-SPEED, 0., 0.);
+            direction += Vec3::new(-1.0, 0., 0.);
+            multipleCheck += 1;
         }
 
         if keyboard_input.pressed(KeyCode::Right) {
-            direction += Vec3::new(SPEED, 0., 0.);
+            direction += Vec3::new(1.0, 0., 0.);
+            multipleCheck += 1;
         }
 
         if keyboard_input.pressed(KeyCode::Up) {
-            direction += Vec3::new(0., -SPEED, 0.);
+            direction += Vec3::new(0., -1.0, 0.);
+            multipleCheck += 1;
         }
 
         if keyboard_input.pressed(KeyCode::Down) {
-            direction += Vec3::new(0., SPEED, 0.);
+            direction += Vec3::new(0., 1.0, 0.);
+            multipleCheck += 1;
+        }
+        if multipleCheck >= 1 {
+            direction /= 2.0;
         }
 
-        *velocity = Velocity::from_linear(direction);
+        multipleCheck = -1;
+
+        *velocity = Velocity::from_linear(direction * SPEED);
     }
 }
 
