@@ -1,3 +1,5 @@
+//use std::ops::RangeBounds;
+
 use bevy::prelude::*;
 use bevy_retrograde::prelude::*;
 use rand::{thread_rng, Rng};
@@ -12,11 +14,17 @@ fn main() {
         .add_system(move_camera.system())
         .run();
 }
+
+#[derive(PhysicsLayer)]
+enum Layer {
+    Enemy,
+    Player,
+}
 struct Player {
     speed: f32
 }
-struct Block;
-struct Spike;
+//struct Block;
+//struct Spike;
 struct Health {
     value: i8,
 }
@@ -56,7 +64,7 @@ fn setup(
         }
 
         if number % 7 == 0 {            
-            for i in 0..5 {
+            for _i in 0..5 {
                 commands
                 .spawn_bundle(SpriteBundle {
                     image: block.clone(),
@@ -67,13 +75,13 @@ fn setup(
                     image: block.clone(),
                     ..Default::default()
                 })
-                .insert(RigidBody::Static)
-                .insert(Block);
+                .insert(RigidBody::Static);
+                //.insert(Block);
                 x += 12.;
             }
         }
         else if number % 3 == 0{
-            for i in 0..2 {
+            for _i in 0..2 {
                 commands
                 .spawn_bundle(SpriteBundle {
                     image: block.clone(),
@@ -84,8 +92,8 @@ fn setup(
                     image: block.clone(),
                     ..Default::default()
                 })
-                .insert(RigidBody::Static)
-                .insert(Block);
+                .insert(RigidBody::Static);
+                //.insert(Block);
                 if x < 0. {
                     x+=12.;
                     y+=12.;
@@ -107,8 +115,8 @@ fn setup(
                 image: block.clone(),
                 ..Default::default()
             })
-            .insert(RigidBody::Static)
-            .insert(Block);
+            .insert(RigidBody::Static);
+            //.insert(Block);
         }
         number += 1;
     }
@@ -124,7 +132,7 @@ fn setup(
         }
 
         if number % 7 == 0 {            
-            for i in 0..3 {
+            for _i in 0..3 {
                 commands
                 .spawn_bundle(SpriteBundle {
                     image: spike.clone(),
@@ -136,7 +144,8 @@ fn setup(
                     ..Default::default()
                 })
                 .insert(RigidBody::Static)
-                .insert(Block);
+                .insert(CollisionLayers::new(Layer::Enemy, Layer::Player));
+                //.insert(Block);
                 y -= 12.;
             }
         }
@@ -152,7 +161,8 @@ fn setup(
                 ..Default::default()
             })
             .insert(RigidBody::Static)
-            .insert(Block);
+            .insert(CollisionLayers::new(Layer::Enemy, Layer::Player));
+            //.insert(Block);
         }
         number += 1;
     }
@@ -187,7 +197,9 @@ fn setup(
         // Set the player speed to 0 initially
         .insert(Velocity::from_linear(Vec3::default()))
         .insert(Player {speed: 75.})
-        .insert(Health {value: 10});
+        .insert(Health {value: 10})
+        .insert(CollisionLayers::new(Layer::Player, Layer::Enemy));
+        
     
 }
 
@@ -250,26 +262,32 @@ fn move_camera(
             direction += Vec3::new(0., SPEED, 0.);
         }
 
+        direction = direction.normalize_or_zero();
+
         transform.translation += direction;
     }
 }
 
-fn detect_collisions(mut events: EventReader<CollisionEvent>, mut health_query: Query<&mut Health, With<Player>>,
-    spike_query: Query<&Spike>, player_query: Query<&Player>) {
+fn is_player(layers: CollisionLayers) -> bool {
+    layers.contains_group(Layer::Player) && !layers.contains_group(Layer::Enemy)
+}
 
-    for event in events.iter() {
+fn is_enemy(layers: CollisionLayers) -> bool {
+    !layers.contains_group(Layer::Player) && layers.contains_group(Layer::Enemy)
+}
+
+fn detect_collisions(mut events: EventReader<CollisionEvent>, mut health_query: Query<&mut Health, With<Player>>) {
+
+    for event in events.iter().filter(|e| e.is_started()) {    
         for mut health in health_query.iter_mut() {
-            for player in player_query.iter() {
-                match event {
-                    CollisionEvent::Started(spike_query, player) => {
-                        health.value -= 1;
-                        println!("Health {}", health.value);
-                    }
-                    CollisionEvent::Stopped(spike_query, player) => {
-                        println!("Player stopped touching spike.")
-                    }
-                }
-            }
+            let (layers_1, layers_2) = event.collision_layers();
+            if is_player(layers_1) && is_enemy(layers_2) {
+                health.value -= 1;
+                println!("Health {}", health.value);
+            } else if is_player(layers_2) && is_enemy(layers_1) {
+                health.value -= 1;
+                println!("Health {}", health.value);
+            }   
         }
-    }
+    }                
 }
