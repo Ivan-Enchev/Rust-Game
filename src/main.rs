@@ -1,5 +1,3 @@
-//use std::ops::RangeBounds;
-
 use bevy::prelude::*;
 use bevy_retrograde::prelude::*;
 use rand::{thread_rng, Rng};
@@ -23,8 +21,6 @@ enum Layer {
 struct Player {
     speed: f32
 }
-//struct Block;
-//struct Spike;
 struct Health {
     value: i8,
 }
@@ -76,7 +72,6 @@ fn setup(
                     ..Default::default()
                 })
                 .insert(RigidBody::Static);
-                //.insert(Block);
                 x += 12.;
             }
         }
@@ -93,7 +88,6 @@ fn setup(
                     ..Default::default()
                 })
                 .insert(RigidBody::Static);
-                //.insert(Block);
                 if x < 0. {
                     x+=12.;
                     y+=12.;
@@ -116,7 +110,6 @@ fn setup(
                 ..Default::default()
             })
             .insert(RigidBody::Static);
-            //.insert(Block);
         }
         number += 1;
     }
@@ -145,7 +138,6 @@ fn setup(
                 })
                 .insert(RigidBody::Static)
                 .insert(CollisionLayers::new(Layer::Enemy, Layer::Player));
-                //.insert(Block);
                 y -= 12.;
             }
         }
@@ -162,7 +154,6 @@ fn setup(
             })
             .insert(RigidBody::Static)
             .insert(CollisionLayers::new(Layer::Enemy, Layer::Player));
-            //.insert(Block);
         }
         number += 1;
     }
@@ -179,22 +170,18 @@ fn setup(
         .insert(TesselatedCollider {
             image: player.clone(),
             tesselator_config: TesselatedColliderConfig {
-                // We want the collision shape for the player to be highly accurate
                 vertice_separation: 0.,
                 ..Default::default()
             },
             ..Default::default()
         })
-        // The player is also a dynamic body with rotations locked
         .insert(RigidBody::Dynamic)
         .insert(RotationConstraints::lock())
-        // Disable friction and bounciness
         .insert(PhysicMaterial {
             friction: 0.,
             restitution: 0.,
             ..Default::default()
         })
-        // Set the player speed to 0 initially
         .insert(Velocity::from_linear(Vec3::default()))
         .insert(Player {speed: 75.})
         .insert(Health {value: 10})
@@ -279,15 +266,14 @@ fn is_enemy(layers: CollisionLayers) -> bool {
 fn detect_collisions(mut events: EventReader<CollisionEvent>, mut health_query: Query<&mut Health, With<Player>>) {
 
     for event in events.iter().filter(|e| e.is_started()) {    
-        for mut health in health_query.iter_mut() {
-            let (layers_1, layers_2) = event.collision_layers();
-            if is_player(layers_1) && is_enemy(layers_2) {
-                health.value -= 1;
-                println!("Health {}", health.value);
-            } else if is_player(layers_2) && is_enemy(layers_1) {
-                health.value -= 1;
-                println!("Health {}", health.value);
-            }   
-        }
-    }                
+        let mut health = if let Some(health) = health_query.iter_mut().next() { health } else { return; };
+        let (layers_1, layers_2) = event.collision_layers();
+        if is_player(layers_1) && is_enemy(layers_2) {
+            health.value -= 1;
+            println!("Health {}", health.value);
+        } else if is_player(layers_2) && is_enemy(layers_1) {
+            health.value -= 1;
+            println!("Health {}", health.value);
+        }   
+    }  
 }
