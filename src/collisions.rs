@@ -42,21 +42,12 @@ pub fn detect_collisions(mut events: EventReader<CollisionEvent>, mut player_hea
 pub fn detect_enemy_collisions(mut events: EventReader<CollisionEvent>, 
     mut enemy_health_query: Query<(Entity, &mut Health), (With<Enemy>, Without<Player>)>) {
     for event in events.iter().filter(|e| e.is_started()) {   
-        //let (entity, mut health) = if let Some((entity, health)) = enemy_health_query.iter_mut().next() {(entity, health)} else { return; };
-        for (entity, mut health) in enemy_health_query.iter_mut() {
-            let (layers_1, layers_2) = event.collision_layers();
-            let (entity_1, entity_2) = event.rigid_body_entities();
-            if is_projectile(layers_1) && is_enemy(layers_2) {
-                if entity_2.id() == entity.id() {
-                    health.value -= 1;
-                    println!("Enemy Health {}", health.value);
-                }
-            } else if is_projectile(layers_2) && is_enemy(layers_1) {
-                if entity_1.id() == entity.id() {
-                    health.value -= 1;
-                    println!("Enemy Health {}", health.value);
-                }
-            }
+        let (layers_1, layers_2) = event.collision_layers();
+        let (entity_1, entity_2) = event.rigid_body_entities();
+        if is_projectile(layers_1) && is_enemy(layers_2) {
+            enemy_health_query.get_component_mut::<Health>(entity_2).unwrap().value -=1;
+        } else if is_projectile(layers_2) && is_enemy(layers_1) {
+            enemy_health_query.get_component_mut::<Health>(entity_1).unwrap().value -=1;
         }
     }  
 }

@@ -6,7 +6,6 @@ mod collisions;
 use bevy::prelude::*;
 use bevy_retrograde::prelude::*;
 use rand::{thread_rng, Rng};
-use std::{time::Duration, thread::sleep};
 use std::time::Instant; 
 use crate::structs::*;
 use crate::player_mechanics::*;
