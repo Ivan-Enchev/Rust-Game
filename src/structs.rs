@@ -9,6 +9,17 @@ pub enum Layer {
     Projectile,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum GameState {
+    Menu,
+    Started,
+}
+
+pub struct Active;
+pub struct Button {
+    pub is_active: bool,
+    pub id: i8,
+}
 pub struct Enemy;
 pub struct FlameSpirit;
 pub struct Slime;
