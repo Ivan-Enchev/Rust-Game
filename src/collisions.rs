@@ -3,10 +3,11 @@ use bevy::prelude::*;
 use bevy_retrograde::prelude::*;
 
 
-pub fn despawn_defeated(mut commands: Commands, query: Query<(&Health, Entity)>) {
+pub fn despawn_defeated(mut commands: Commands, query: Query<(&Health, Entity)>, stage_query: Query<&mut GameStage>) {
     for (health, entity) in query.iter() {
         if health.value <= 0 {
             commands.entity(entity).despawn();
+            stage_query.for_each_mut(|mut stage|{stage.enemies -= 1});
         }
     }
 }

@@ -85,7 +85,8 @@ mut commands: Commands, asset_server: Res<AssetServer>) {
                 .insert(Velocity::from_linear(Vec3::default()))
                 .insert(BasicAttack)
                 .insert(Delay {delay: 0.1, start: Instant::now()})
-                .insert(CollisionLayers::new(Layer::Projectile, Layer::Enemy));
+                .insert(CollisionLayers::new(Layer::Projectile, Layer::Enemy))
+                .insert(LevelEntity);
         }
     }
 }
