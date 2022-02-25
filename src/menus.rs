@@ -3,6 +3,7 @@ use crate::structs::*;
 use bevy::prelude::*;
 use bevy_retrograde::prelude::*;
 use std::time::Instant; 
+use crate::Element::*;
 use rand::{thread_rng, Rng};
 
 
@@ -46,7 +47,7 @@ pub fn menu(keyboard_input: ResMut<Input<KeyCode>>, mut game_state: ResMut<State
         for (button, _) in button_query.iter_mut() {
             if button.is_active {
                 if button.id == 1 {
-                    game_state.set(GameState::LevelSelection).unwrap();
+                    game_state.set(GameState::ElementSelect).unwrap();
                 }
                 else if button.id == 2 {
                     exit.send(AppExit);
@@ -142,4 +143,61 @@ key_delay: Query<&mut Delay, With<KeyDelay>>) {
         key_delay.for_each_mut(|mut delay| {delay.start = Instant::now()});
         game_state.set(GameState::LevelSelection).unwrap();
     })
+}
+
+pub fn element_select(stage_query: Query<&mut GameStage>, arrow_query: Query<&mut GlobalTransform, With<ChoiceArrow>>,
+keyboard_input: ResMut<Input<KeyCode>>, mut game_state: ResMut<State<GameState>>, inventory: Query<&mut PlayerInventory>,
+mut key_delay: Query<&mut Delay, With<KeyDelay>>) {
+    
+    stage_query.for_each_mut(|mut stage| {
+        arrow_query.for_each_mut(|mut arrow| {
+            match stage.active_room {
+                0 => arrow.translation = Vec3::new(-60., -55., 0.),
+                1 => arrow.translation = Vec3::new(0., -55., 0.),
+                2 => arrow.translation = Vec3::new(60., -55., 0.),
+                3 => arrow.translation = Vec3::new(-30., 5., 0.),
+                4 => arrow.translation = Vec3::new(30., 5., 0.),
+                _ => arrow.translation = Vec3::new(0., 0., 0.)
+            }
+        });
+
+        if keyboard_input.just_pressed(KeyCode::Right) {
+            stage.active_room += 1;
+            if stage.active_room >= 5 {
+                stage.active_room = 0;
+            }
+        }
+
+        if keyboard_input.just_pressed(KeyCode::Left) {
+            stage.active_room -= 1;
+            if stage.active_room <= -1 {
+                stage.active_room = 4;
+            }
+        }
+
+        for mut delay in key_delay.iter_mut() {
+            if delay.next_action_aviable(Instant::now()) {
+                if keyboard_input.just_pressed(KeyCode::Z) {
+                    inventory.for_each_mut(|mut inventory| {
+                        match stage.active_room {
+                            0 => inventory.p_element = Darkness,
+                            1 => inventory.p_element = Nature,
+                            2 => inventory.p_element = Air,
+                            3 => inventory.p_element = Fire,
+                            4 => inventory.p_element = Water,
+                            _ => inventory.p_element = ENone,
+                        }
+                    });
+                    delay.start = Instant::now();
+                    stage.active_room = 2;
+                    game_state.set(GameState::LevelSelection).unwrap();
+                }
+            }
+        }
+    });
+}
+
+pub fn element_cleanup(element_query: Query<(Entity, &EChoice)>, mut commands: Commands, arrow_query: Query<(Entity, &ChoiceArrow)>) {
+    arrow_query.for_each(|(arrow, _)| {commands.entity(arrow).despawn()});
+    element_query.for_each(|(element, _)| {commands.entity(element).despawn()});
 }

@@ -353,3 +353,60 @@ pub fn spawn_rooms(mut commands: Commands, asset_server: Res<AssetServer>, stage
         }
     }
 }
+
+pub fn spawn_elements(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let dark = asset_server.load("dark.png");
+    let nature = asset_server.load("nature.png");
+    let water = asset_server.load("water.png");
+    let air = asset_server.load("air.png");
+    let fire = asset_server.load("fire.png");
+    let arrow = asset_server.load("choice_arrow.png");
+
+    commands
+        .spawn_bundle(SpriteBundle {
+            image: dark.clone(),
+            transform: Transform::from_xyz(-60., -30., 0.),
+            ..Default::default()
+        })
+        .insert(EChoice);
+
+    commands
+        .spawn_bundle(SpriteBundle {
+            image: nature.clone(),
+           transform: Transform::from_xyz(0., -30., 0.),
+            ..Default::default()
+        })
+        .insert(EChoice);
+
+    commands
+        .spawn_bundle(SpriteBundle {
+            image: air.clone(),
+            transform: Transform::from_xyz(60., -30., 0.),
+            ..Default::default()
+        })
+        .insert(EChoice);
+
+    commands
+        .spawn_bundle(SpriteBundle {
+            image: fire.clone(),
+            transform: Transform::from_xyz(30., 30., 0.),
+            ..Default::default()
+        })
+        .insert(EChoice);
+
+    commands
+        .spawn_bundle(SpriteBundle {
+            image: water.clone(),
+            transform: Transform::from_xyz(-30., 30., 0.),
+            ..Default::default()
+        })
+        .insert(EChoice);
+
+    commands
+        .spawn_bundle(SpriteBundle {
+            image: arrow.clone(),
+            transform: Transform::from_xyz(-40., -55., 0.),
+            ..Default::default()
+        })
+        .insert(ChoiceArrow);
+}

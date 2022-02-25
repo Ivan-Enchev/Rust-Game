@@ -14,6 +14,7 @@ use crate::enemy_mechanics::*;
 use crate::collisions::*;
 use crate::spawn_entities::*;
 use crate::menus::*;
+use crate::Element::ENone;
 use rand::{thread_rng, Rng};
 
 fn main() {
@@ -28,6 +29,18 @@ fn main() {
         .add_system_set(
             SystemSet::on_exit(GameState::Menu)
                 .with_system(menu_cleanup.system())
+        )
+        .add_system_set(
+            SystemSet::on_enter(GameState::ElementSelect)
+                .with_system(spawn_elements.system())
+        )
+        .add_system_set(
+            SystemSet::on_update(GameState::ElementSelect)
+                .with_system(element_select.system())
+        )
+        .add_system_set(
+            SystemSet::on_exit(GameState::ElementSelect)
+                .with_system(element_cleanup.system())
         )
         .add_system_set(
             SystemSet::on_enter(GameState::LevelSelection)
@@ -126,7 +139,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             arrow_pos: 20.,
             enemies: 0
         })
-        .insert(PlayerInventory {p_health: 10});
+        .insert(PlayerInventory {p_health: 10, p_element: ENone});
 
     commands
         .spawn()
