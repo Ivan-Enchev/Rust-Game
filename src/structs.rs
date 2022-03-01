@@ -18,9 +18,17 @@ pub enum GameState {
     Shop,
     Heal,
     ArtifactRoom,
+    ElementSelect
 }
 
-#[derive(Default)]
+pub enum Element {
+    Darkness, 
+    Nature,
+    Fire,
+    Water,
+    Air,
+    ENone
+}
 pub struct GameStage {
     pub level: i16,
     pub rooms_1: [i8; 5],
@@ -40,7 +48,10 @@ pub struct Button {
 
 pub struct PlayerInventory {
     pub p_health: i16,
+    pub p_element: Element
 }
+
+pub struct EChoice;
 pub struct LevelEntity;
 pub struct KeyDelay;
 pub struct Room;
