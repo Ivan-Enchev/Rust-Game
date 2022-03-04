@@ -2,6 +2,7 @@ use crate::structs::*;
 use bevy::prelude::*;
 use bevy_retrograde::prelude::*;
 use std::time::Instant; 
+use crate::Status::*;
 
 pub fn move_player(keyboard_input: Res<Input<KeyCode>>, mut query: Query<(&mut Velocity, &GlobalTransform, &Speed), With<Player>>,
 mut cam_query: Query<&mut Transform, With<Camera>>)  {
@@ -84,6 +85,8 @@ mut commands: Commands, asset_server: Res<AssetServer>) {
                 .insert(RigidBody::Sensor)
                 .insert(Velocity::from_linear(Vec3::default()))
                 .insert(BasicAttack)
+                .insert(Specialty{value: String::from("none")})
+                .insert(Damage{value: 2.})
                 .insert(Delay {delay: 0.1, start: Instant::now()})
                 .insert(CollisionLayers::new(Layer::Projectile, Layer::Enemy))
                 .insert(LevelEntity);
@@ -98,3 +101,156 @@ pub fn end_attack(mut commands: Commands, query: Query<(&BasicAttack, Entity, &D
         }
     }
 }
+
+pub fn special_attack(keyboard_input: Res<Input<KeyCode>>, mut pos_query: Query<(&GlobalTransform, &mut CurrentStatus, &mut Velocity), With<Player>>,
+mut special_delay: Query<&mut Delay, With<Special1>>, inventory: Query<&PlayerInventory>, mut commands: Commands, asset_server: Res<AssetServer>) {
+    for (position, mut status, mut velocity) in pos_query.iter_mut() {
+        let dark_attack = asset_server.load("dark_attack.png");
+        let nature_attack = asset_server.load("nature_attack.png");
+        let air_attack = asset_server.load("air_attack.png");
+        let mut attack_direction_x = 0.0;
+        let mut attack_direction_y = 0.0;
+
+        if keyboard_input.pressed(KeyCode::Right) {
+            attack_direction_x = 30.;
+        }
+
+        if keyboard_input.pressed(KeyCode::Left) {
+            attack_direction_x = -30.;
+        }
+
+        if keyboard_input.pressed(KeyCode::Up) {
+            attack_direction_y = -30.;
+        }
+
+        if keyboard_input.pressed(KeyCode::Down) {
+            attack_direction_y = 30.;
+        }
+
+        if keyboard_input.just_pressed(KeyCode::X) {
+            if attack_direction_x == 0. && attack_direction_y == 0. {
+                attack_direction_x = 10.;
+            }
+            
+            for mut delay in special_delay.iter_mut() {
+                if delay.next_action_aviable(Instant::now()) {
+                    delay.start = Instant::now();
+
+                    if attack_direction_x == 0. && attack_direction_y == 0. {
+                        attack_direction_x = 30.;
+                    }
+                    inventory.for_each(|inventory| {
+                        match inventory.p_element {
+                            Element::Darkness => {
+                                commands
+                                    .spawn_bundle(SpriteBundle {
+                                        image: dark_attack.clone(),
+                                        transform: Transform::from_xyz(position.translation.x + attack_direction_x,
+                                             position.translation.y + attack_direction_y, 0.),
+                                        ..Default::default()
+                                    })
+                                    .insert(TesselatedCollider {
+                                        image: dark_attack.clone(),
+                                        tesselator_config: TesselatedColliderConfig {
+                                            vertice_separation: 0.,
+                                            ..Default::default()
+                                        },
+                                        ..Default::default()
+                                    })
+                                    .insert(RigidBody::Sensor)
+                                    .insert(Velocity::from_linear(Vec3::default()))
+                                    .insert(BasicAttack)
+                                    .insert(Specialty{value: String::from("none")})
+                                    .insert(Delay {delay: 0.2, start: Instant::now()})
+                                    .insert(CollisionLayers::new(Layer::Projectile, Layer::Enemy))
+                                    .insert(Damage{value: 4.})
+                                    .insert(LevelEntity);
+                            },
+                            Element::Nature => {
+                                commands
+                                    .spawn_bundle(SpriteBundle {
+                                        image: nature_attack.clone(),
+                                        transform: Transform::from_xyz(position.translation.x + attack_direction_x,
+                                             position.translation.y + attack_direction_y, 0.),
+                                        ..Default::default()
+                                    })
+                                    .insert(TesselatedCollider {
+                                        image: nature_attack.clone(),
+                                        tesselator_config: TesselatedColliderConfig {
+                                            vertice_separation: 0.,
+                                            ..Default::default()
+                                        },
+                                        ..Default::default()
+                                    })
+                                    .insert(RigidBody::Sensor)
+                                    .insert(Velocity::from_linear(Vec3::default()))
+                                    .insert(BasicAttack)
+                                    .insert(Specialty{value: String::from("poison")})
+                                    .insert(Delay {delay: 0.2, start: Instant::now()})
+                                    .insert(CollisionLayers::new(Layer::Projectile, Layer::Enemy))
+                                    .insert(Damage{value: 1.})
+                                    .insert(LevelEntity);
+                            },
+                            Element::Fire => {
+                                *velocity = Velocity::from_linear(Vec3::new(attack_direction_x * 200., attack_direction_y * 200., 0.));
+                            },
+                            Element::Water => {
+                                commands
+                                    .spawn()
+                                    .insert(ProtectionDelay)
+                                    .insert(Delay {start: Instant::now(), delay: 10.});
+                                status.value = Protection;
+                            },
+                            Element::Air => {
+                                commands
+                                    .spawn_bundle(SpriteBundle {
+                                        image: air_attack.clone(),
+                                        transform: Transform::from_xyz(position.translation.x + attack_direction_x,
+                                             position.translation.y + attack_direction_y, 0.),
+                                        ..Default::default()
+                                    })
+                                    .insert(TesselatedCollider {
+                                        image: air_attack.clone(),
+                                        tesselator_config: TesselatedColliderConfig {
+                                            vertice_separation: 0.,
+                                            ..Default::default()
+                                        },
+                                        ..Default::default()
+                                    })
+                                    .insert(RigidBody::Sensor)
+                                    .insert(Velocity::from_linear(Vec3::default()))
+                                    .insert(BasicAttack)
+                                    .insert(Specialty{value: String::from("weaken")})
+                                    .insert(Delay {delay: 0.2, start: Instant::now()})
+                                    .insert(CollisionLayers::new(Layer::Projectile, Layer::Enemy))
+                                    .insert(Damage{value: 2.})
+                                    .insert(LevelEntity);
+                            },
+                            Element::ENone => print!("No player element!")
+                        }
+                    })
+                }
+            }
+
+        }
+    }
+}
+
+
+pub fn remove_protection(query: Query<(Entity, &Delay, &ProtectionDelay)>, player_query: Query<&mut CurrentStatus, With<Player>>,
+mut commands: Commands) {
+    for (entity, delay, _) in query.iter() {
+        if delay.next_action_aviable(Instant::now()) {
+            player_query.for_each_mut(|mut status|{status.value = SNone});
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
+
+
+
+
+
+
+

@@ -51,3 +51,13 @@ pub fn move_flame_spirit(mut query: Query<(&mut Velocity, &mut GlobalTransform, 
         }
     }
 }
+
+pub fn poison_entities(mut query: Query<(&mut Health, &mut PoisonDelay, Entity)>) {
+    for (mut health, mut poison, _) in query.iter_mut() {
+        if !poison.finished() {
+            if poison.tick_poison(Instant::now()) {
+                health.value -= 1;
+            }
+        }
+    }
+}

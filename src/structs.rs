@@ -18,9 +18,28 @@ pub enum GameState {
     Shop,
     Heal,
     ArtifactRoom,
+    ElementSelect
 }
 
-#[derive(Default)]
+pub enum Element {
+    Darkness, 
+    Nature,
+    Fire,
+    Water,
+    Air,
+    ENone
+}
+
+#[derive(PartialEq)]
+pub enum Status {
+    SNone,
+    Protection,
+    Weakened,
+}
+
+pub struct CurrentStatus {
+    pub value: Status
+}
 pub struct GameStage {
     pub level: i16,
     pub rooms_1: [i8; 5],
@@ -39,12 +58,26 @@ pub struct Button {
 }
 
 pub struct PlayerInventory {
-    pub p_health: i16,
+    // Weapon 1, Weapon 2, Coins, Health
+    pub inventory: [i32; 4],
+    pub p_element: Element
+}
+
+
+pub struct EChoice;
+#[derive(Default)]
+pub struct Specialty {
+    pub value: String
 }
 pub struct LevelEntity;
 pub struct KeyDelay;
+pub struct ProtectionDelay;
 pub struct Room;
-
+#[derive(Default)]
+pub struct Damage {
+    pub value: f32
+}
+pub struct Special1;
 pub struct ChoiceArrow;
 pub struct Enemy;
 pub struct FlameSpirit;
@@ -63,9 +96,29 @@ pub struct Delay {
     pub delay: f64,
 }
 
+pub struct PoisonDelay {
+    pub start: Instant,
+    pub ticks: i8
+}
+
 impl Delay {
     pub fn next_action_aviable(&self, now: Instant) -> bool {
         now.duration_since(self.start).as_secs_f64() >= self.delay
+    }
+}
+
+impl PoisonDelay {
+    pub fn tick_poison(&mut self, now: Instant) -> bool {
+        if now.duration_since(self.start).as_secs_f64() >= 1. {
+            self.start = Instant::now();
+            self.ticks += 1;
+            return true;
+        }
+        else {return false;}
+    }
+
+    pub fn finished(&self) -> bool {
+        self.ticks >= 5
     }
 }
 

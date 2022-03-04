@@ -2,7 +2,8 @@ use bevy::app::AppExit;
 use crate::structs::*;
 use bevy::prelude::*;
 use bevy_retrograde::prelude::*;
-use std::time::Instant; 
+use std::{time::{Instant, Duration}, thread::sleep}; 
+use crate::Element::*;
 use rand::{thread_rng, Rng};
 
 
@@ -46,7 +47,7 @@ pub fn menu(keyboard_input: ResMut<Input<KeyCode>>, mut game_state: ResMut<State
         for (button, _) in button_query.iter_mut() {
             if button.is_active {
                 if button.id == 1 {
-                    game_state.set(GameState::LevelSelection).unwrap();
+                    game_state.set(GameState::ElementSelect).unwrap();
                 }
                 else if button.id == 2 {
                     exit.send(AppExit);
@@ -114,11 +115,24 @@ pub fn level_end_system(mut game_state: ResMut<State<GameState>>, stage_query: Q
 player_health_query: Query<&Health, With<Player>>, inventory: Query<&mut PlayerInventory>) {
 
     for player_health in player_health_query.iter() {
-        inventory.for_each_mut(|mut inventory|{inventory.p_health = player_health.value});
+        inventory.for_each_mut(|mut inventory|{inventory.inventory[3] = player_health.value as i32});
     }
 
     stage_query.for_each_mut(|mut stage| {
         if stage.enemies <= 0 {
+            sleep(Duration::from_millis(500));
+            let mut gain_coins = thread_rng();
+            inventory.for_each_mut(|mut inventory|{inventory.inventory[2] = gain_coins.gen_range(1..=(stage.level as i32 * 5))});
+            if stage.rooms_1[stage.active_room as usize] == 4 {
+                inventory.for_each_mut(|mut inventory|{
+                    inventory.inventory[2] = gain_coins.gen_range(1..=(stage.level as i32 * 10));
+                    match inventory.inventory[0] {
+                        0 => inventory.inventory[0] = gain_coins.gen_range(1..=5),
+                        _ => inventory.inventory[1] = gain_coins.gen_range(1..=5)
+                        //Need to add choice for weapon switch
+                    }
+                });
+            }
             stage.next_level();
             game_state.set(GameState::LevelSelection).unwrap();
         }
@@ -134,12 +148,87 @@ pub fn heal(mut game_state: ResMut<State<GameState>>, stage_query: Query<&mut Ga
 key_delay: Query<&mut Delay, With<KeyDelay>>) {
     inventory.for_each_mut(|mut inventory| {
         let mut gain_heatlh = thread_rng();
-        inventory.p_health += gain_heatlh.gen_range(1..=4);
-        if inventory.p_health > 10 {
-            inventory.p_health = 10;
+        inventory.inventory[3] += gain_heatlh.gen_range(1..=4);
+        if inventory.inventory[3] > 10 {
+            inventory.inventory[3] = 10;
         }
         stage_query.for_each_mut(|mut stage| {stage.next_level();});
         key_delay.for_each_mut(|mut delay| {delay.start = Instant::now()});
         game_state.set(GameState::LevelSelection).unwrap();
     })
+}
+
+pub fn element_select(stage_query: Query<&mut GameStage>, arrow_query: Query<&mut GlobalTransform, With<ChoiceArrow>>,
+keyboard_input: ResMut<Input<KeyCode>>, mut game_state: ResMut<State<GameState>>, inventory: Query<&mut PlayerInventory>,
+delay_query: QuerySet<(Query<&mut Delay, With<KeyDelay>>, Query<&mut Delay, With<Special1>>)>) {
+
+    let key_delay = delay_query.q0();
+    let special_delay = delay_query.q1();
+    
+    stage_query.for_each_mut(|mut stage| {
+        arrow_query.for_each_mut(|mut arrow| {
+            match stage.active_room {
+                0 => arrow.translation = Vec3::new(-60., -55., 0.),
+                1 => arrow.translation = Vec3::new(0., -55., 0.),
+                2 => arrow.translation = Vec3::new(60., -55., 0.),
+                3 => arrow.translation = Vec3::new(-30., 5., 0.),
+                4 => arrow.translation = Vec3::new(30., 5., 0.),
+                _ => arrow.translation = Vec3::new(0., 0., 0.)
+            }
+        });
+
+        if keyboard_input.just_pressed(KeyCode::Right) {
+            stage.active_room += 1;
+            if stage.active_room >= 5 {
+                stage.active_room = 0;
+            }
+        }
+
+        if keyboard_input.just_pressed(KeyCode::Left) {
+            stage.active_room -= 1;
+            if stage.active_room <= -1 {
+                stage.active_room = 4;
+            }
+        }
+
+        key_delay.for_each_mut(|mut delay| {
+            if delay.next_action_aviable(Instant::now()) {
+                if keyboard_input.just_pressed(KeyCode::Z) {
+                    inventory.for_each_mut(|mut inventory| {
+                        match stage.active_room {
+                            0 => {
+                                inventory.p_element = Darkness;
+                                special_delay.for_each_mut(|mut delay| {delay.delay = 15.});
+                            },
+                            1 => {
+                                inventory.p_element = Nature;
+                                special_delay.for_each_mut(|mut delay| {delay.delay = 10.});
+                            },
+                            2 => {
+                                inventory.p_element = Air;
+                                special_delay.for_each_mut(|mut delay| {delay.delay = 15.});
+                            },
+                            3 => {
+                                inventory.p_element = Water;
+                                special_delay.for_each_mut(|mut delay| {delay.delay = 30.});
+                            },
+                            4 => {
+                                inventory.p_element = Fire;
+                                special_delay.for_each_mut(|mut delay| {delay.delay = 10.});
+                            },
+                            _ => inventory.p_element = ENone,
+                        }
+                    });
+                    delay.start = Instant::now();
+                    stage.active_room = 2;
+                    game_state.set(GameState::LevelSelection).unwrap();
+                }
+            }
+        })
+    });
+}
+
+pub fn element_cleanup(element_query: Query<(Entity, &EChoice)>, mut commands: Commands, arrow_query: Query<(Entity, &ChoiceArrow)>) {
+    arrow_query.for_each(|(arrow, _)| {commands.entity(arrow).despawn()});
+    element_query.for_each(|(element, _)| {commands.entity(element).despawn()});
 }
