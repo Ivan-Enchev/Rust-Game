@@ -40,6 +40,7 @@ pub enum Status {
 pub struct CurrentStatus {
     pub value: Status
 }
+
 pub struct GameStage {
     pub level: i16,
     pub rooms_1: [i8; 5],
@@ -63,12 +64,13 @@ pub struct PlayerInventory {
     pub p_element: Element
 }
 
-
 pub struct EChoice;
 #[derive(Default)]
 pub struct Specialty {
     pub value: String
 }
+
+pub struct EChoice;
 pub struct LevelEntity;
 pub struct KeyDelay;
 pub struct ProtectionDelay;
