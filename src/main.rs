@@ -142,7 +142,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             arrow_pos: 20.,
             enemies: 0
         })
-        .insert(PlayerInventory {inventory: [0, 0, 0, 10], p_element: ENone});
+        .insert(PlayerInventory {weapon_1: ENone, weapon_2: ENone, active_weapon: 0, p_health: 10, coins: 0, p_element: ENone});
 
     commands
         .spawn()

@@ -2,7 +2,7 @@ use bevy::app::AppExit;
 use crate::structs::*;
 use bevy::prelude::*;
 use bevy_retrograde::prelude::*;
-use std::{time::{Instant, Duration}, thread::sleep}; 
+use std::time::Instant; 
 use crate::Element::*;
 use rand::{thread_rng, Rng};
 
@@ -115,20 +115,38 @@ pub fn level_end_system(mut game_state: ResMut<State<GameState>>, stage_query: Q
 player_health_query: Query<&Health, With<Player>>, inventory: Query<&mut PlayerInventory>) {
 
     for player_health in player_health_query.iter() {
-        inventory.for_each_mut(|mut inventory|{inventory.inventory[3] = player_health.value as i32});
+        inventory.for_each_mut(|mut inventory|{inventory.p_health = player_health.value});
     }
 
     stage_query.for_each_mut(|mut stage| {
         if stage.enemies <= 0 {
-            sleep(Duration::from_millis(500));
             let mut gain_coins = thread_rng();
-            inventory.for_each_mut(|mut inventory|{inventory.inventory[2] = gain_coins.gen_range(1..=(stage.level as i32 * 5))});
+            inventory.for_each_mut(|mut inventory|{inventory.coins = gain_coins.gen_range(1..=(stage.level as i32 * 5))});
             if stage.rooms_1[stage.active_room as usize] == 4 {
                 inventory.for_each_mut(|mut inventory|{
-                    inventory.inventory[2] = gain_coins.gen_range(1..=(stage.level as i32 * 10));
-                    match inventory.inventory[0] {
-                        0 => inventory.inventory[0] = gain_coins.gen_range(1..=5),
-                        _ => inventory.inventory[1] = gain_coins.gen_range(1..=5)
+                    inventory.coins = gain_coins.gen_range(1..=(stage.level as i32 * 10));
+                    let weapon_gen = gain_coins.gen_range(1..=5);
+                    match inventory.weapon_1 {
+                        ENone => {
+                            match weapon_gen {
+                                1 => inventory.weapon_1 = Darkness,
+                                2 => inventory.weapon_1 = Nature,
+                                3 => inventory.weapon_1 = Air,
+                                4 => inventory.weapon_1 = Water,
+                                5 => inventory.weapon_1 = Fire,
+                                _ => inventory.weapon_1 = ENone
+                            }
+                        },
+                        _ => {
+                            match weapon_gen {
+                                1 => inventory.weapon_2 = Darkness,
+                                2 => inventory.weapon_2 = Nature,
+                                3 => inventory.weapon_2 = Air,
+                                4 => inventory.weapon_2 = Water,
+                                5 => inventory.weapon_2 = Fire,
+                                _ => inventory.weapon_2 = ENone
+                            }
+                        }
                         //Need to add choice for weapon switch
                     }
                 });
@@ -148,9 +166,9 @@ pub fn heal(mut game_state: ResMut<State<GameState>>, stage_query: Query<&mut Ga
 key_delay: Query<&mut Delay, With<KeyDelay>>) {
     inventory.for_each_mut(|mut inventory| {
         let mut gain_heatlh = thread_rng();
-        inventory.inventory[3] += gain_heatlh.gen_range(1..=4);
-        if inventory.inventory[3] > 10 {
-            inventory.inventory[3] = 10;
+        inventory.p_health += gain_heatlh.gen_range(1..=4);
+        if inventory.p_health > 10 {
+            inventory.p_health = 10;
         }
         stage_query.for_each_mut(|mut stage| {stage.next_level();});
         key_delay.for_each_mut(|mut delay| {delay.start = Instant::now()});

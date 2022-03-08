@@ -1,3 +1,4 @@
+use bevy::{prelude::Bundle, math::Vec3};
 use bevy_retrograde::prelude::*;
 use std::time::Instant; 
 use rand::{thread_rng, Rng};
@@ -31,6 +32,13 @@ pub enum Element {
 }
 
 #[derive(PartialEq)]
+pub enum Specialty {
+    Poison, 
+    Weaken, 
+    SPNone
+}
+
+#[derive(PartialEq)]
 pub enum Status {
     SNone,
     Protection,
@@ -58,19 +66,29 @@ pub struct Button {
     pub id: i8,
 }
 
+#[derive(Bundle)]
+pub struct AttackBundle {
+    pub rigid_body: RigidBody,
+    pub velocity: Velocity,
+    pub attack: BasicAttack,
+    pub delay: Delay,
+    pub layers: CollisionLayers,
+    pub lvl_entity: LevelEntity
+}
 pub struct PlayerInventory {
-    // Weapon 1, Weapon 2, Coins, Health
-    pub inventory: [i32; 4],
+    pub weapon_1: Element,
+    pub weapon_2: Element,
+    pub active_weapon: i8,
+    pub p_health: i16, 
+    pub coins: i32,
     pub p_element: Element
 }
 
 pub struct EChoice;
-#[derive(Default)]
-pub struct Specialty {
-    pub value: String
-}
 
-pub struct EChoice;
+pub struct AttackSpecialty {
+    pub value: Specialty
+}
 pub struct LevelEntity;
 pub struct KeyDelay;
 pub struct ProtectionDelay;
@@ -100,7 +118,7 @@ pub struct Delay {
 
 pub struct PoisonDelay {
     pub start: Instant,
-    pub ticks: i8
+    pub ticks: usize
 }
 
 impl Delay {
@@ -113,14 +131,14 @@ impl PoisonDelay {
     pub fn tick_poison(&mut self, now: Instant) -> bool {
         if now.duration_since(self.start).as_secs_f64() >= 1. {
             self.start = Instant::now();
-            self.ticks += 1;
+            self.ticks -= 1;
             return true;
         }
         else {return false;}
     }
 
     pub fn finished(&self) -> bool {
-        self.ticks >= 5
+        self.ticks <= 0
     }
 }
 
@@ -150,3 +168,15 @@ impl GameStage {
     }
 }
 
+impl Default for AttackBundle {
+    fn default() -> Self {
+		Self {
+            rigid_body: RigidBody::Sensor,
+            velocity: Velocity::from_linear(Vec3::default()),
+            attack: BasicAttack,
+            delay: Delay {delay: 0.2, start: Instant::now()},
+            layers: CollisionLayers::new(Layer::Projectile, Layer::Enemy),
+            lvl_entity: LevelEntity
+		}
+	}
+}

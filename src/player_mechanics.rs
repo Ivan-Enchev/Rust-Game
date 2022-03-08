@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use bevy_retrograde::prelude::*;
 use std::time::Instant; 
 use crate::Status::*;
+use crate::Specialty::*;
 
 pub fn move_player(keyboard_input: Res<Input<KeyCode>>, mut query: Query<(&mut Velocity, &GlobalTransform, &Speed), With<Player>>,
 mut cam_query: Query<&mut Transform, With<Camera>>)  {
@@ -82,14 +83,9 @@ mut commands: Commands, asset_server: Res<AssetServer>) {
                     },
                     ..Default::default()
                 })
-                .insert(RigidBody::Sensor)
-                .insert(Velocity::from_linear(Vec3::default()))
-                .insert(BasicAttack)
-                .insert(Specialty{value: String::from("none")})
                 .insert(Damage{value: 2.})
-                .insert(Delay {delay: 0.1, start: Instant::now()})
-                .insert(CollisionLayers::new(Layer::Projectile, Layer::Enemy))
-                .insert(LevelEntity);
+                .insert(AttackSpecialty {value: SPNone})
+                .insert_bundle(AttackBundle::default());
         }
     }
 }
@@ -157,14 +153,9 @@ mut special_delay: Query<&mut Delay, With<Special1>>, inventory: Query<&PlayerIn
                                         },
                                         ..Default::default()
                                     })
-                                    .insert(RigidBody::Sensor)
-                                    .insert(Velocity::from_linear(Vec3::default()))
-                                    .insert(BasicAttack)
-                                    .insert(Specialty{value: String::from("none")})
-                                    .insert(Delay {delay: 0.2, start: Instant::now()})
-                                    .insert(CollisionLayers::new(Layer::Projectile, Layer::Enemy))
                                     .insert(Damage{value: 4.})
-                                    .insert(LevelEntity);
+                                    .insert(AttackSpecialty {value: SPNone})
+                                    .insert_bundle(AttackBundle::default());
                             },
                             Element::Nature => {
                                 commands
@@ -182,14 +173,9 @@ mut special_delay: Query<&mut Delay, With<Special1>>, inventory: Query<&PlayerIn
                                         },
                                         ..Default::default()
                                     })
-                                    .insert(RigidBody::Sensor)
-                                    .insert(Velocity::from_linear(Vec3::default()))
-                                    .insert(BasicAttack)
-                                    .insert(Specialty{value: String::from("poison")})
-                                    .insert(Delay {delay: 0.2, start: Instant::now()})
-                                    .insert(CollisionLayers::new(Layer::Projectile, Layer::Enemy))
                                     .insert(Damage{value: 1.})
-                                    .insert(LevelEntity);
+                                    .insert(AttackSpecialty {value: Poison})
+                                    .insert_bundle(AttackBundle::default());
                             },
                             Element::Fire => {
                                 *velocity = Velocity::from_linear(Vec3::new(attack_direction_x * 200., attack_direction_y * 200., 0.));
@@ -217,14 +203,9 @@ mut special_delay: Query<&mut Delay, With<Special1>>, inventory: Query<&PlayerIn
                                         },
                                         ..Default::default()
                                     })
-                                    .insert(RigidBody::Sensor)
-                                    .insert(Velocity::from_linear(Vec3::default()))
-                                    .insert(BasicAttack)
-                                    .insert(Specialty{value: String::from("weaken")})
-                                    .insert(Delay {delay: 0.2, start: Instant::now()})
-                                    .insert(CollisionLayers::new(Layer::Projectile, Layer::Enemy))
                                     .insert(Damage{value: 2.})
-                                    .insert(LevelEntity);
+                                    .insert(AttackSpecialty {value: Weaken})
+                                    .insert_bundle(AttackBundle::default());
                             },
                             Element::ENone => print!("No player element!")
                         }

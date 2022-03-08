@@ -256,7 +256,7 @@ pub fn spawn_player(mut commands: Commands, asset_server: Res<AssetServer>, inve
 
     let mut current_health = 0;
 
-    inventory.for_each(|inventory| {current_health = inventory.inventory[3]});
+    inventory.for_each(|inventory| {current_health = inventory.p_health});
 
     commands
     .spawn_bundle(SpriteBundle {
