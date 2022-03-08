@@ -7,7 +7,6 @@ mod menus;
 
 use bevy::prelude::*;
 use bevy_retrograde::prelude::*;
-use std::time::Instant; 
 use crate::structs::*;
 use crate::player_mechanics::*;
 use crate::enemy_mechanics::*;
@@ -72,6 +71,9 @@ fn main() {
                 .with_system(move_slime.system())
                 .with_system(move_flame_spirit.system())
                 .with_system(player_attack.system())
+                .with_system(special_attack.system())
+                .with_system(poison_entities.system())
+                .with_system(remove_protection.system())
                 .with_system(end_attack.system())
                 .with_system(despawn_defeated.system())
                 .with_system(level_end_system.system())
@@ -132,19 +134,26 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         .insert(GameStage{
             level: 1,
             rooms_1: [0, 1, 1, 1, 0],
-            active_room: 2,
+            active_room: 0,
             start_point: 2,
             rooms_2: room2,
             rooms_3: room3,
             arrow_pos: 20.,
             enemies: 0
         })
-        .insert(PlayerInventory {p_health: 10, p_element: ENone});
+        .insert(PlayerInventory {weapon_1: ENone, weapon_2: ENone, active_weapon: 0, p_health: 10,
+            coins: 0, p_element: ENone, can_attack: false}
+        );
 
     commands
         .spawn()
         .insert(KeyDelay)
-        .insert(Delay { start: Instant::now(), delay: 0.1 });
+        .insert(Delay {timer: Timer::from_seconds(0.5, false)});
+
+    commands
+        .spawn()
+        .insert(Special1)
+        .insert(Delay {timer: Timer::from_seconds(1., false)});
 
     commands
         .spawn_bundle(SpriteBundle {
@@ -163,4 +172,5 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         .insert(Button {is_active: false, id: 2});
     
 }
+
 

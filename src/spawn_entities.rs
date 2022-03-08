@@ -1,8 +1,8 @@
 use bevy::{prelude::*, ecs::system::QuerySingleError};
 use bevy_retrograde::prelude::*;
 use rand::{thread_rng, Rng};
-use std::time::Instant; 
 use crate::structs::*;
+use crate::Status::SNone;
 
 pub fn spawn_enemies(mut commands: Commands, asset_server: Res<AssetServer>, stage_query: Query<&mut GameStage>) {
     let slime = asset_server.load("slime.png");
@@ -24,10 +24,12 @@ pub fn spawn_enemies(mut commands: Commands, asset_server: Res<AssetServer>, sta
     let map_max = 200.0 + (100. * (current_level as f32 / 10.));
     let map_min = -200.0 - (100. * (current_level as f32 / 10.));
 
-    let slime_speed = (20. + (current_level as f32 * 0.5))* elite_multiplier as f32;
-    let slime_health = (3 + current_level / 10) * elite_multiplier;
+    let slime_speed = (20. + (current_level as f32 * 0.5)) * elite_multiplier as f32;
+    let slime_health = (6 + current_level / 10) * elite_multiplier;
+    let slime_attack = 1 * elite_multiplier;
 
     let flame_health = (2 + current_level / 10) * elite_multiplier;
+    let flame_attack = 2 * elite_multiplier;
 
     
     while number <= current_level + 3 {
@@ -54,8 +56,10 @@ pub fn spawn_enemies(mut commands: Commands, asset_server: Res<AssetServer>, sta
             .insert(Slime)
             .insert(LevelEntity)
             .insert(Enemy)
+            .insert(CurrentStatus {value: SNone})
             .insert(Speed {value: slime_speed})
             .insert(Health {value: slime_health})
+            .insert(Damage {value: slime_attack as f32})
             .insert(
                 CollisionLayers::none()
                     .with_group(Layer::Enemy)
@@ -96,10 +100,12 @@ pub fn spawn_enemies(mut commands: Commands, asset_server: Res<AssetServer>, sta
             .insert(Velocity::from_linear(Vec3::default()))
             .insert(FlameSpirit)
             .insert(Enemy)
+            .insert(CurrentStatus {value: SNone})
             .insert(LevelEntity)
-            .insert(Delay {start: Instant::now(), delay: 2.})
+            .insert(Delay {timer: Timer::from_seconds(2., true)})
             .insert(Speed {value: 60.})
             .insert(Health {value: flame_health})
+            .insert(Damage {value: flame_attack as f32})
             .insert(
                 CollisionLayers::none()
                     .with_group(Layer::Enemy)
@@ -216,6 +222,8 @@ pub fn spawn_blocks(mut commands: Commands, asset_server: Res<AssetServer>, stag
                 })
                 .insert(RigidBody::Static)
                 .insert(LevelEntity)
+                .insert(Enemy)
+                .insert(Damage {value: 1.})
                 .insert(CollisionLayers::new(Layer::Enemy, Layer::Player));
                 y -= 12.;
             }
@@ -233,6 +241,8 @@ pub fn spawn_blocks(mut commands: Commands, asset_server: Res<AssetServer>, stag
             })
             .insert(RigidBody::Static)
             .insert(LevelEntity)
+            .insert(Enemy)
+            .insert(Damage {value: 1.})
             .insert(CollisionLayers::new(Layer::Enemy, Layer::Player));
         }
         number += 1;
@@ -269,9 +279,10 @@ pub fn spawn_player(mut commands: Commands, asset_server: Res<AssetServer>, inve
     .insert(RotationConstraints::lock())
     .insert(Velocity::from_linear(Vec3::default()))
     .insert(Player)
+    .insert(CurrentStatus {value: SNone})
     .insert(LevelEntity)
     .insert(Speed {value: 75.})
-    .insert(Health {value: current_health})
+    .insert(Health {value: current_health as i16})
     .insert(CollisionLayers::new(Layer::Player, Layer::Enemy));  
 
     

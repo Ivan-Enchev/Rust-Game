@@ -1,5 +1,5 @@
+use bevy::{prelude::Bundle, math::Vec3, core::Timer};
 use bevy_retrograde::prelude::*;
-use std::time::Instant; 
 use rand::{thread_rng, Rng};
 
 
@@ -29,6 +29,25 @@ pub enum Element {
     Air,
     ENone
 }
+
+#[derive(PartialEq)]
+pub enum Specialty {
+    Poison, 
+    Weaken, 
+    SPNone
+}
+
+#[derive(PartialEq)]
+pub enum Status {
+    SNone,
+    Protection,
+    Weakened,
+}
+
+pub struct CurrentStatus {
+    pub value: Status
+}
+
 pub struct GameStage {
     pub level: i16,
     pub rooms_1: [i8; 5],
@@ -46,16 +65,39 @@ pub struct Button {
     pub id: i8,
 }
 
+#[derive(Bundle)]
+pub struct AttackBundle {
+    pub rigid_body: RigidBody,
+    pub velocity: Velocity,
+    pub attack: BasicAttack,
+    pub delay: Delay,
+    pub layers: CollisionLayers,
+    pub lvl_entity: LevelEntity
+}
 pub struct PlayerInventory {
-    pub p_health: i16,
-    pub p_element: Element
+    pub weapon_1: Element,
+    pub weapon_2: Element,
+    pub active_weapon: i8,
+    pub p_health: i16, 
+    pub coins: i32,
+    pub p_element: Element,
+    pub can_attack: bool
 }
 
 pub struct EChoice;
+
+pub struct AttackSpecialty {
+    pub value: Specialty
+}
 pub struct LevelEntity;
 pub struct KeyDelay;
+pub struct ProtectionDelay;
 pub struct Room;
-
+#[derive(Default)]
+pub struct Damage {
+    pub value: f32
+}
+pub struct Special1;
 pub struct ChoiceArrow;
 pub struct Enemy;
 pub struct FlameSpirit;
@@ -69,14 +111,26 @@ pub struct Health {
     pub value: i16,
 }
 
+#[derive(Default)]
 pub struct Delay {
-    pub start: Instant,
-    pub delay: f64,
+    pub timer: Timer
+}
+
+pub struct PoisonDelay {
+    pub ticks: usize,
+    pub timer: Timer
 }
 
 impl Delay {
-    pub fn next_action_aviable(&self, now: Instant) -> bool {
-        now.duration_since(self.start).as_secs_f64() >= self.delay
+    pub fn change_timer(&mut self, delay: f32) {
+        self.timer = Timer::from_seconds(delay, true);
+        self.timer.reset();
+    }
+}
+
+impl PoisonDelay {
+    pub fn finished(&self) -> bool {
+        self.ticks <= 0
     }
 }
 
@@ -106,3 +160,15 @@ impl GameStage {
     }
 }
 
+impl Default for AttackBundle {
+    fn default() -> Self {
+		Self {
+            rigid_body: RigidBody::Sensor,
+            velocity: Velocity::from_linear(Vec3::default()),
+            attack: BasicAttack,
+            delay: Delay {timer: Timer::from_seconds(0.2, true)},
+            layers: CollisionLayers::new(Layer::Projectile, Layer::Enemy),
+            lvl_entity: LevelEntity
+		}
+	}
+}
