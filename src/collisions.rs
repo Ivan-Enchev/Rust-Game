@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use crate::structs::*;
 use bevy::prelude::*;
 use bevy_retrograde::prelude::*;
@@ -60,7 +58,7 @@ damage: Query<(Entity, &Damage, &AttackSpecialty)>, mut commands: Commands) {
         if is_projectile(layers_1) && is_enemy(layers_2) {
             if damage.get_component::<AttackSpecialty>(entity_1).unwrap().value == Poison {
                 let (current_entity, _, _) = enemy_query.get_mut(entity_2).unwrap();
-                commands.entity(current_entity).insert(PoisonDelay{start: Instant::now(), ticks: 5});
+                commands.entity(current_entity).insert(PoisonDelay{timer: Timer::from_seconds(1., true), ticks: 5});
             }
             else if damage.get_component::<AttackSpecialty>(entity_1).unwrap().value == Weaken {
                 enemy_query.get_component_mut::<CurrentStatus>(entity_2).unwrap().value = Weakened;  
@@ -75,7 +73,7 @@ damage: Query<(Entity, &Damage, &AttackSpecialty)>, mut commands: Commands) {
         } else if is_projectile(layers_2) && is_enemy(layers_1) {
             if damage.get_component::<AttackSpecialty>(entity_2).unwrap().value == Poison {
                 let (current_entity, _, _) = enemy_query.get_mut(entity_1).unwrap();
-                commands.entity(current_entity).insert(PoisonDelay{start: Instant::now(), ticks: 5});
+                commands.entity(current_entity).insert(PoisonDelay{timer: Timer::from_seconds(1., true), ticks: 5});
             }
             else if damage.get_component::<AttackSpecialty>(entity_2).unwrap().value == Weaken {
                 enemy_query.get_component_mut::<CurrentStatus>(entity_1).unwrap().value = Weakened;  

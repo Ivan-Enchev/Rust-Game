@@ -1,6 +1,5 @@
-use bevy::{prelude::Bundle, math::Vec3};
+use bevy::{prelude::Bundle, math::Vec3, core::Timer};
 use bevy_retrograde::prelude::*;
-use std::time::Instant; 
 use rand::{thread_rng, Rng};
 
 
@@ -81,7 +80,8 @@ pub struct PlayerInventory {
     pub active_weapon: i8,
     pub p_health: i16, 
     pub coins: i32,
-    pub p_element: Element
+    pub p_element: Element,
+    pub can_attack: bool
 }
 
 pub struct EChoice;
@@ -111,32 +111,24 @@ pub struct Health {
     pub value: i16,
 }
 
+#[derive(Default)]
 pub struct Delay {
-    pub start: Instant,
-    pub delay: f64,
+    pub timer: Timer
 }
 
 pub struct PoisonDelay {
-    pub start: Instant,
-    pub ticks: usize
+    pub ticks: usize,
+    pub timer: Timer
 }
 
 impl Delay {
-    pub fn next_action_aviable(&self, now: Instant) -> bool {
-        now.duration_since(self.start).as_secs_f64() >= self.delay
+    pub fn change_timer(&mut self, delay: f32) {
+        self.timer = Timer::from_seconds(delay, true);
+        self.timer.reset();
     }
 }
 
 impl PoisonDelay {
-    pub fn tick_poison(&mut self, now: Instant) -> bool {
-        if now.duration_since(self.start).as_secs_f64() >= 1. {
-            self.start = Instant::now();
-            self.ticks -= 1;
-            return true;
-        }
-        else {return false;}
-    }
-
     pub fn finished(&self) -> bool {
         self.ticks <= 0
     }
@@ -174,7 +166,7 @@ impl Default for AttackBundle {
             rigid_body: RigidBody::Sensor,
             velocity: Velocity::from_linear(Vec3::default()),
             attack: BasicAttack,
-            delay: Delay {delay: 0.2, start: Instant::now()},
+            delay: Delay {timer: Timer::from_seconds(0.2, true)},
             layers: CollisionLayers::new(Layer::Projectile, Layer::Enemy),
             lvl_entity: LevelEntity
 		}
