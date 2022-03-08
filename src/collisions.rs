@@ -1,9 +1,8 @@
-use std::time::Instant;
-
 use crate::structs::*;
 use bevy::prelude::*;
 use bevy_retrograde::prelude::*;
 use crate::Status::*;
+use crate::Specialty::*;
 
 pub fn despawn_defeated(mut commands: Commands, query: Query<(&Health, Entity)>, stage_query: Query<&mut GameStage>) {
     for (health, entity) in query.iter() {
@@ -51,17 +50,17 @@ damage_query: Query<(Entity, &Damage), (With<Enemy>, Without<Player>)>) {
 
 pub fn detect_enemy_collisions(mut events: EventReader<CollisionEvent>, 
 mut enemy_query: Query<(Entity, &mut Health, &mut CurrentStatus), (With<Enemy>, Without<Player>)>,
-damage: Query<(Entity, &Damage, &Specialty)>, mut commands: Commands) {
+damage: Query<(Entity, &Damage, &AttackSpecialty)>, mut commands: Commands) {
     for event in events.iter().filter(|e| e.is_started()) {   
         let (layers_1, layers_2) = event.collision_layers();
         let (entity_1, entity_2) = event.rigid_body_entities();
         let mut effect_multiplier = 1.;
         if is_projectile(layers_1) && is_enemy(layers_2) {
-            if damage.get_component::<Specialty>(entity_1).unwrap().value.as_str() == "poison" {
+            if damage.get_component::<AttackSpecialty>(entity_1).unwrap().value == Poison {
                 let (current_entity, _, _) = enemy_query.get_mut(entity_2).unwrap();
-                commands.entity(current_entity).insert(PoisonDelay{start: Instant::now(), ticks: 0});
+                commands.entity(current_entity).insert(PoisonDelay{timer: Timer::from_seconds(1., true), ticks: 5});
             }
-            else if damage.get_component::<Specialty>(entity_1).unwrap().value.as_str() == "weaken" {
+            else if damage.get_component::<AttackSpecialty>(entity_1).unwrap().value == Weaken {
                 enemy_query.get_component_mut::<CurrentStatus>(entity_2).unwrap().value = Weakened;  
             } 
             else {
@@ -72,11 +71,11 @@ damage: Query<(Entity, &Damage, &Specialty)>, mut commands: Commands) {
                 enemy_query.get_component_mut::<Health>(entity_2).unwrap().value -= dealt_damage as i16;
             }
         } else if is_projectile(layers_2) && is_enemy(layers_1) {
-            if damage.get_component::<Specialty>(entity_2).unwrap().value.as_str() == "poison" {
+            if damage.get_component::<AttackSpecialty>(entity_2).unwrap().value == Poison {
                 let (current_entity, _, _) = enemy_query.get_mut(entity_1).unwrap();
-                commands.entity(current_entity).insert(PoisonDelay{start: Instant::now(), ticks: 0});
+                commands.entity(current_entity).insert(PoisonDelay{timer: Timer::from_seconds(1., true), ticks: 5});
             }
-            else if damage.get_component::<Specialty>(entity_2).unwrap().value.as_str() == "weaken" {
+            else if damage.get_component::<AttackSpecialty>(entity_2).unwrap().value == Weaken {
                 enemy_query.get_component_mut::<CurrentStatus>(entity_1).unwrap().value = Weakened;  
             } 
             else {

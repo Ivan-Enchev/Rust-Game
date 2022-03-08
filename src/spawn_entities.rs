@@ -1,7 +1,6 @@
 use bevy::{prelude::*, ecs::system::QuerySingleError};
 use bevy_retrograde::prelude::*;
 use rand::{thread_rng, Rng};
-use std::time::Instant; 
 use crate::structs::*;
 use crate::Status::SNone;
 
@@ -30,7 +29,7 @@ pub fn spawn_enemies(mut commands: Commands, asset_server: Res<AssetServer>, sta
     let slime_attack = 1 * elite_multiplier;
 
     let flame_health = (2 + current_level / 10) * elite_multiplier;
-    let flame_attack = 1 * elite_multiplier;
+    let flame_attack = 2 * elite_multiplier;
 
     
     while number <= current_level + 3 {
@@ -103,7 +102,7 @@ pub fn spawn_enemies(mut commands: Commands, asset_server: Res<AssetServer>, sta
             .insert(Enemy)
             .insert(CurrentStatus {value: SNone})
             .insert(LevelEntity)
-            .insert(Delay {start: Instant::now(), delay: 2.})
+            .insert(Delay {timer: Timer::from_seconds(2., true)})
             .insert(Speed {value: 60.})
             .insert(Health {value: flame_health})
             .insert(Damage {value: flame_attack as f32})
@@ -256,7 +255,7 @@ pub fn spawn_player(mut commands: Commands, asset_server: Res<AssetServer>, inve
 
     let mut current_health = 0;
 
-    inventory.for_each(|inventory| {current_health = inventory.inventory[3]});
+    inventory.for_each(|inventory| {current_health = inventory.p_health});
 
     commands
     .spawn_bundle(SpriteBundle {

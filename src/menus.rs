@@ -2,7 +2,6 @@ use bevy::app::AppExit;
 use crate::structs::*;
 use bevy::prelude::*;
 use bevy_retrograde::prelude::*;
-use std::{time::{Instant, Duration}, thread::sleep}; 
 use crate::Element::*;
 use rand::{thread_rng, Rng};
 
@@ -43,8 +42,8 @@ pub fn menu(keyboard_input: ResMut<Input<KeyCode>>, mut game_state: ResMut<State
         active_query.for_each(|(active, _)| {commands.entity(active).despawn()});
     }
     if keyboard_input.just_pressed(KeyCode::Z) {
-        key_delay.for_each_mut(|mut delay| {delay.start = Instant::now()});
         for (button, _) in button_query.iter_mut() {
+            key_delay.for_each_mut(|mut delay|{delay.timer.reset()});
             if button.is_active {
                 if button.id == 1 {
                     game_state.set(GameState::ElementSelect).unwrap();
@@ -63,7 +62,7 @@ pub fn menu_cleanup(button_query: Query<(Entity, &Button)>, active_query: Query<
 }
 
 pub fn level_select(stage_query: Query<&mut GameStage>, arrow_query: Query<&mut GlobalTransform, With<ChoiceArrow>>,
-keyboard_input: ResMut<Input<KeyCode>>, mut game_state: ResMut<State<GameState>>, key_delay: Query<&Delay, With<KeyDelay>>) {
+keyboard_input: ResMut<Input<KeyCode>>, mut game_state: ResMut<State<GameState>>, mut key_delay: Query<&mut Delay, With<KeyDelay>>, time:Res<Time>) {
 
     stage_query.for_each_mut(|mut stage| {
         
@@ -87,8 +86,8 @@ keyboard_input: ResMut<Input<KeyCode>>, mut game_state: ResMut<State<GameState>>
             }
         }
 
-        for delay in key_delay.iter() {
-            if delay.next_action_aviable(Instant::now()) {
+        for mut delay in key_delay.iter_mut() {
+            if delay.timer.tick(time.delta()).finished() {
                 if keyboard_input.just_pressed(KeyCode::Z) {
                     stage.start_point = stage.active_room;
                     match stage.rooms_1[stage.active_room as usize] {
@@ -99,6 +98,7 @@ keyboard_input: ResMut<Input<KeyCode>>, mut game_state: ResMut<State<GameState>>
                         5 => game_state.set(GameState::ArtifactRoom).unwrap(),
                         _ => print!("No such room!"),
                     }
+                    delay.timer.reset();
                 }
             }
         }
@@ -115,20 +115,38 @@ pub fn level_end_system(mut game_state: ResMut<State<GameState>>, stage_query: Q
 player_health_query: Query<&Health, With<Player>>, inventory: Query<&mut PlayerInventory>) {
 
     for player_health in player_health_query.iter() {
-        inventory.for_each_mut(|mut inventory|{inventory.inventory[3] = player_health.value as i32});
+        inventory.for_each_mut(|mut inventory|{inventory.p_health = player_health.value});
     }
 
     stage_query.for_each_mut(|mut stage| {
         if stage.enemies <= 0 {
-            sleep(Duration::from_millis(500));
             let mut gain_coins = thread_rng();
-            inventory.for_each_mut(|mut inventory|{inventory.inventory[2] = gain_coins.gen_range(1..=(stage.level as i32 * 5))});
+            inventory.for_each_mut(|mut inventory|{inventory.coins = gain_coins.gen_range(1..=(stage.level as i32 * 5))});
             if stage.rooms_1[stage.active_room as usize] == 4 {
                 inventory.for_each_mut(|mut inventory|{
-                    inventory.inventory[2] = gain_coins.gen_range(1..=(stage.level as i32 * 10));
-                    match inventory.inventory[0] {
-                        0 => inventory.inventory[0] = gain_coins.gen_range(1..=5),
-                        _ => inventory.inventory[1] = gain_coins.gen_range(1..=5)
+                    inventory.coins = gain_coins.gen_range(1..=(stage.level as i32 * 10));
+                    let weapon_gen = gain_coins.gen_range(1..=5);
+                    match inventory.weapon_1 {
+                        ENone => {
+                            match weapon_gen {
+                                1 => inventory.weapon_1 = Darkness,
+                                2 => inventory.weapon_1 = Nature,
+                                3 => inventory.weapon_1 = Air,
+                                4 => inventory.weapon_1 = Water,
+                                5 => inventory.weapon_1 = Fire,
+                                _ => inventory.weapon_1 = ENone
+                            }
+                        },
+                        _ => {
+                            match weapon_gen {
+                                1 => inventory.weapon_2 = Darkness,
+                                2 => inventory.weapon_2 = Nature,
+                                3 => inventory.weapon_2 = Air,
+                                4 => inventory.weapon_2 = Water,
+                                5 => inventory.weapon_2 = Fire,
+                                _ => inventory.weapon_2 = ENone
+                            }
+                        }
                         //Need to add choice for weapon switch
                     }
                 });
@@ -148,19 +166,19 @@ pub fn heal(mut game_state: ResMut<State<GameState>>, stage_query: Query<&mut Ga
 key_delay: Query<&mut Delay, With<KeyDelay>>) {
     inventory.for_each_mut(|mut inventory| {
         let mut gain_heatlh = thread_rng();
-        inventory.inventory[3] += gain_heatlh.gen_range(1..=4);
-        if inventory.inventory[3] > 10 {
-            inventory.inventory[3] = 10;
+        inventory.p_health += gain_heatlh.gen_range(1..=4);
+        if inventory.p_health > 10 {
+            inventory.p_health = 10;
         }
         stage_query.for_each_mut(|mut stage| {stage.next_level();});
-        key_delay.for_each_mut(|mut delay| {delay.start = Instant::now()});
+        key_delay.for_each_mut(|mut delay| {delay.timer.reset()});
         game_state.set(GameState::LevelSelection).unwrap();
     })
 }
 
 pub fn element_select(stage_query: Query<&mut GameStage>, arrow_query: Query<&mut GlobalTransform, With<ChoiceArrow>>,
 keyboard_input: ResMut<Input<KeyCode>>, mut game_state: ResMut<State<GameState>>, inventory: Query<&mut PlayerInventory>,
-delay_query: QuerySet<(Query<&mut Delay, With<KeyDelay>>, Query<&mut Delay, With<Special1>>)>) {
+delay_query: QuerySet<(Query<&mut Delay, With<KeyDelay>>, Query<&mut Delay, With<Special1>>)>, time: Res<Time>) {
 
     let key_delay = delay_query.q0();
     let special_delay = delay_query.q1();
@@ -192,35 +210,35 @@ delay_query: QuerySet<(Query<&mut Delay, With<KeyDelay>>, Query<&mut Delay, With
         }
 
         key_delay.for_each_mut(|mut delay| {
-            if delay.next_action_aviable(Instant::now()) {
+            if delay.timer.tick(time.delta()).finished() {
                 if keyboard_input.just_pressed(KeyCode::Z) {
                     inventory.for_each_mut(|mut inventory| {
                         match stage.active_room {
                             0 => {
                                 inventory.p_element = Darkness;
-                                special_delay.for_each_mut(|mut delay| {delay.delay = 15.});
+                                special_delay.for_each_mut(|mut delay| {delay.change_timer(15.)});
                             },
                             1 => {
                                 inventory.p_element = Nature;
-                                special_delay.for_each_mut(|mut delay| {delay.delay = 10.});
+                                special_delay.for_each_mut(|mut delay| {delay.change_timer(10.)});
                             },
                             2 => {
                                 inventory.p_element = Air;
-                                special_delay.for_each_mut(|mut delay| {delay.delay = 15.});
+                                special_delay.for_each_mut(|mut delay| {delay.change_timer(15.)});
                             },
                             3 => {
                                 inventory.p_element = Water;
-                                special_delay.for_each_mut(|mut delay| {delay.delay = 30.});
+                                special_delay.for_each_mut(|mut delay| {delay.change_timer(30.)});
                             },
                             4 => {
                                 inventory.p_element = Fire;
-                                special_delay.for_each_mut(|mut delay| {delay.delay = 10.});
+                                special_delay.for_each_mut(|mut delay| {delay.change_timer(10.)});
                             },
                             _ => inventory.p_element = ENone,
                         }
                     });
-                    delay.start = Instant::now();
                     stage.active_room = 2;
+                    delay.timer.reset();
                     game_state.set(GameState::LevelSelection).unwrap();
                 }
             }

@@ -7,7 +7,6 @@ mod menus;
 
 use bevy::prelude::*;
 use bevy_retrograde::prelude::*;
-use std::time::Instant; 
 use crate::structs::*;
 use crate::player_mechanics::*;
 use crate::enemy_mechanics::*;
@@ -142,17 +141,19 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             arrow_pos: 20.,
             enemies: 0
         })
-        .insert(PlayerInventory {inventory: [0, 0, 0, 10], p_element: ENone});
+        .insert(PlayerInventory {weapon_1: ENone, weapon_2: ENone, active_weapon: 0, p_health: 10,
+            coins: 0, p_element: ENone, can_attack: false}
+        );
 
     commands
         .spawn()
         .insert(KeyDelay)
-        .insert(Delay { start: Instant::now(), delay: 0.1 });
+        .insert(Delay {timer: Timer::from_seconds(0.5, false)});
 
     commands
         .spawn()
         .insert(Special1)
-        .insert(Delay { start: Instant::now(), delay: 0. });
+        .insert(Delay {timer: Timer::from_seconds(1., false)});
 
     commands
         .spawn_bundle(SpriteBundle {
@@ -171,4 +172,5 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         .insert(Button {is_active: false, id: 2});
     
 }
+
 
