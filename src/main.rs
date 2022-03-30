@@ -165,7 +165,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         .spawn()
         .insert(Special1)
         .insert(Delay {timer: Timer::from_seconds(1., false)});
-
+  
     commands
         .spawn()
         .insert(Special2)
