@@ -33,15 +33,29 @@ pub enum Element {
 #[derive(PartialEq)]
 pub enum Specialty {
     Poison, 
-    Weaken, 
+    StrongPoison,
+    LongPoison,
+    SlowPoison,
+    FastPoison,
+    ShortPoison,
+    Death,
+    Half,
+    Weaken,
+    SuperWeaken, 
+    LowWeaken, 
+    Paralize,
+    Slow,
     SPNone
 }
 
 #[derive(PartialEq)]
 pub enum Status {
     SNone,
-    Protection,
+    Protected,
+    PoisonHeal,
     Weakened,
+    SuperWeakened,
+    LowWeakened
 }
 
 pub struct CurrentStatus {
@@ -70,15 +84,14 @@ pub struct AttackBundle {
     pub rigid_body: RigidBody,
     pub velocity: Velocity,
     pub attack: BasicAttack,
-    pub delay: Delay,
     pub layers: CollisionLayers,
     pub lvl_entity: LevelEntity
 }
 pub struct PlayerInventory {
-    pub weapon_1: Element,
-    pub weapon_2: Element,
+    pub weapons: [Element; 2],
     pub active_weapon: i8,
     pub p_health: i16, 
+    pub max_health: i16,
     pub coins: i32,
     pub p_element: Element,
     pub can_attack: bool
@@ -98,6 +111,8 @@ pub struct Damage {
     pub value: f32
 }
 pub struct Special1;
+
+pub struct Special2;
 pub struct ChoiceArrow;
 pub struct Enemy;
 pub struct FlameSpirit;
@@ -121,6 +136,15 @@ pub struct PoisonDelay {
     pub timer: Timer
 }
 
+pub struct SPoisonDelay {
+    pub ticks: usize,
+    pub timer: Timer
+}
+pub struct DeathDelay {
+    pub ticks: usize,
+    pub timer: Timer
+}
+
 impl Delay {
     pub fn change_timer(&mut self, delay: f32) {
         self.timer = Timer::from_seconds(delay, true);
@@ -129,6 +153,18 @@ impl Delay {
 }
 
 impl PoisonDelay {
+    pub fn finished(&self) -> bool {
+        self.ticks <= 0
+    }
+}
+
+impl SPoisonDelay {
+    pub fn finished(&self) -> bool {
+        self.ticks <= 0
+    }
+}
+
+impl DeathDelay {
     pub fn finished(&self) -> bool {
         self.ticks <= 0
     }
@@ -166,7 +202,6 @@ impl Default for AttackBundle {
             rigid_body: RigidBody::Sensor,
             velocity: Velocity::from_linear(Vec3::default()),
             attack: BasicAttack,
-            delay: Delay {timer: Timer::from_seconds(0.2, true)},
             layers: CollisionLayers::new(Layer::Projectile, Layer::Enemy),
             lvl_entity: LevelEntity
 		}

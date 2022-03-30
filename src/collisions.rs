@@ -34,7 +34,7 @@ damage_query: Query<(Entity, &Damage), (With<Enemy>, Without<Player>)>) {
         let (layers_1, layers_2) = event.collision_layers();
         let (entity_1, entity_2) = event.rigid_body_entities();
         let mut status_multiplier = 1.;
-        if status.value == Protection {
+        if status.value == Protected {
             status_multiplier = 0.5;
         }
 
@@ -49,41 +49,71 @@ damage_query: Query<(Entity, &Damage), (With<Enemy>, Without<Player>)>) {
 }
 
 pub fn detect_enemy_collisions(mut events: EventReader<CollisionEvent>, 
-mut enemy_query: Query<(Entity, &mut Health, &mut CurrentStatus), (With<Enemy>, Without<Player>)>,
+mut enemy_query: Query<(Entity, &mut Health, &mut CurrentStatus, &mut Speed), (With<Enemy>, Without<Player>)>,
 damage: Query<(Entity, &Damage, &AttackSpecialty)>, mut commands: Commands) {
     for event in events.iter().filter(|e| e.is_started()) {   
         let (layers_1, layers_2) = event.collision_layers();
         let (entity_1, entity_2) = event.rigid_body_entities();
         let mut effect_multiplier = 1.;
         if is_projectile(layers_1) && is_enemy(layers_2) {
-            if damage.get_component::<AttackSpecialty>(entity_1).unwrap().value == Poison {
-                let (current_entity, _, _) = enemy_query.get_mut(entity_2).unwrap();
-                commands.entity(current_entity).insert(PoisonDelay{timer: Timer::from_seconds(1., true), ticks: 5});
-            }
-            else if damage.get_component::<AttackSpecialty>(entity_1).unwrap().value == Weaken {
-                enemy_query.get_component_mut::<CurrentStatus>(entity_2).unwrap().value = Weakened;  
-            } 
-            else {
-                if enemy_query.get_component::<CurrentStatus>(entity_2).unwrap().value == Weakened {
-                    effect_multiplier = 2.;
+            let (current_entity, _, _, _) = enemy_query.get_mut(entity_2).unwrap();
+            match damage.get_component::<AttackSpecialty>(entity_1).unwrap().value {
+                Poison => {commands.entity(current_entity).insert(PoisonDelay{timer: Timer::from_seconds(1., true), ticks: 5});},
+                StrongPoison => {commands.entity(current_entity).insert(SPoisonDelay{timer: Timer::from_seconds(1., true), ticks: 5});},
+                LongPoison => {commands.entity(current_entity).insert(PoisonDelay{timer: Timer::from_seconds(1., true), ticks: 10});},
+                FastPoison => {commands.entity(current_entity).insert(PoisonDelay{timer: Timer::from_seconds(0.5, true), ticks: 5});},
+                ShortPoison => {commands.entity(current_entity).insert(PoisonDelay{timer: Timer::from_seconds(1., true), ticks: 3});},
+                SlowPoison => {commands.entity(current_entity).insert(PoisonDelay{timer: Timer::from_seconds(2., true), ticks: 100});},
+                Death => {commands.entity(current_entity).insert(DeathDelay{timer: Timer::from_seconds(1., true), ticks: 10});},
+                Weaken => {enemy_query.get_component_mut::<CurrentStatus>(entity_2).unwrap().value = Weakened;},
+                LowWeaken => {enemy_query.get_component_mut::<CurrentStatus>(entity_2).unwrap().value = LowWeakened;},
+                SuperWeaken => {enemy_query.get_component_mut::<CurrentStatus>(entity_2).unwrap().value = SuperWeakened;}
+                Half => {enemy_query.get_component_mut::<Health>(entity_2).unwrap().value /= 2;},
+                Paralize => {enemy_query.get_component_mut::<Speed>(entity_2).unwrap().value = 0.;},
+                Slow => {enemy_query.get_component_mut::<Speed>(entity_2).unwrap().value /= 2.;},
+                SPNone => {
+                    if enemy_query.get_component::<CurrentStatus>(entity_2).unwrap().value == Weakened {
+                        effect_multiplier *= 2.;
+                    }
+                    if enemy_query.get_component::<CurrentStatus>(entity_2).unwrap().value == SuperWeakened {
+                        effect_multiplier *= 3.;
+                    }
+                    if enemy_query.get_component::<CurrentStatus>(entity_2).unwrap().value == LowWeakened {
+                        effect_multiplier *= 1.5;
+                    }
+                    let dealt_damage = damage.get_component::<Damage>(entity_1).unwrap().value * effect_multiplier;
+                    enemy_query.get_component_mut::<Health>(entity_2).unwrap().value -= dealt_damage as i16;
                 }
-                let dealt_damage = damage.get_component::<Damage>(entity_1).unwrap().value * effect_multiplier;
-                enemy_query.get_component_mut::<Health>(entity_2).unwrap().value -= dealt_damage as i16;
             }
         } else if is_projectile(layers_2) && is_enemy(layers_1) {
-            if damage.get_component::<AttackSpecialty>(entity_2).unwrap().value == Poison {
-                let (current_entity, _, _) = enemy_query.get_mut(entity_1).unwrap();
-                commands.entity(current_entity).insert(PoisonDelay{timer: Timer::from_seconds(1., true), ticks: 5});
-            }
-            else if damage.get_component::<AttackSpecialty>(entity_2).unwrap().value == Weaken {
-                enemy_query.get_component_mut::<CurrentStatus>(entity_1).unwrap().value = Weakened;  
-            } 
-            else {
-                if enemy_query.get_component::<CurrentStatus>(entity_1).unwrap().value == Weakened {
-                    effect_multiplier = 2.;
+            let (current_entity, _, _, _) = enemy_query.get_mut(entity_1).unwrap();
+            match damage.get_component::<AttackSpecialty>(entity_2).unwrap().value {
+                Poison => {commands.entity(current_entity).insert(PoisonDelay{timer: Timer::from_seconds(1., true), ticks: 5});},
+                StrongPoison => {commands.entity(current_entity).insert(SPoisonDelay{timer: Timer::from_seconds(1., true), ticks: 5});},
+                LongPoison => {commands.entity(current_entity).insert(PoisonDelay{timer: Timer::from_seconds(1., true), ticks: 10});},
+                ShortPoison => {commands.entity(current_entity).insert(PoisonDelay{timer: Timer::from_seconds(1., true), ticks: 3});},
+                SlowPoison => {commands.entity(current_entity).insert(PoisonDelay{timer: Timer::from_seconds(2., true), ticks: 100});},
+                FastPoison => {commands.entity(current_entity).insert(PoisonDelay{timer: Timer::from_seconds(0.5, true), ticks: 5});},
+                Death => {commands.entity(current_entity).insert(DeathDelay{timer: Timer::from_seconds(1., true), ticks: 10});},
+                Weaken => {enemy_query.get_component_mut::<CurrentStatus>(entity_1).unwrap().value = Weakened;},
+                LowWeaken => {enemy_query.get_component_mut::<CurrentStatus>(entity_1).unwrap().value = LowWeakened;},
+                SuperWeaken => {enemy_query.get_component_mut::<CurrentStatus>(entity_1).unwrap().value = SuperWeakened;}
+                Half => {enemy_query.get_component_mut::<Health>(entity_1).unwrap().value /= 2;},
+                Paralize => {enemy_query.get_component_mut::<Speed>(entity_1).unwrap().value = 0.;},
+                Slow => {enemy_query.get_component_mut::<Speed>(entity_1).unwrap().value /= 2.;},
+                SPNone => {
+                    if enemy_query.get_component::<CurrentStatus>(entity_1).unwrap().value == Weakened {
+                        effect_multiplier *= 2.;
+                    }
+                    if enemy_query.get_component::<CurrentStatus>(entity_1).unwrap().value == SuperWeakened {
+                        effect_multiplier *= 3.;
+                    }
+                    if enemy_query.get_component::<CurrentStatus>(entity_1).unwrap().value == LowWeakened {
+                        effect_multiplier *= 1.5;
+                    }
+                    let dealt_damage = damage.get_component::<Damage>(entity_2).unwrap().value * effect_multiplier;
+                    enemy_query.get_component_mut::<Health>(entity_1).unwrap().value -= dealt_damage as i16;
                 }
-                let dealt_damage = damage.get_component::<Damage>(entity_2).unwrap().value * effect_multiplier;
-                enemy_query.get_component_mut::<Health>(entity_1).unwrap().value -= dealt_damage as i16;
             }
         }
     }  

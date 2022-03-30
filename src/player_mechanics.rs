@@ -84,6 +84,7 @@ mut commands: Commands, asset_server: Res<AssetServer>) {
                 })
                 .insert(Damage{value: 2.})
                 .insert(AttackSpecialty {value: SPNone})
+                .insert(Delay {timer: Timer::from_seconds(0.1, true)})
                 .insert_bundle(AttackBundle::default());
         }
     }
@@ -153,6 +154,7 @@ mut commands: Commands, asset_server: Res<AssetServer>, time: Res<Time>) {
                                 })
                                 .insert(Damage{value: 4.})
                                 .insert(AttackSpecialty {value: SPNone})
+                                .insert(Delay {timer: Timer::from_seconds(0.2, true)})
                                 .insert_bundle(AttackBundle::default());
                         },
                         Element::Nature => {
@@ -173,6 +175,7 @@ mut commands: Commands, asset_server: Res<AssetServer>, time: Res<Time>) {
                                 })
                                 .insert(Damage{value: 1.})
                                 .insert(AttackSpecialty {value: Poison})
+                                .insert(Delay {timer: Timer::from_seconds(0.2, true)})
                                 .insert_bundle(AttackBundle::default());
                         },
                         Element::Fire => {
@@ -183,7 +186,7 @@ mut commands: Commands, asset_server: Res<AssetServer>, time: Res<Time>) {
                                 .spawn()
                                 .insert(ProtectionDelay)
                                 .insert(Delay {timer: Timer::from_seconds(10., true)});
-                            status.value = Protection;
+                            status.value = Protected;
                         },
                         Element::Air => {
                             commands
@@ -203,6 +206,7 @@ mut commands: Commands, asset_server: Res<AssetServer>, time: Res<Time>) {
                                 })
                                 .insert(Damage{value: 2.})
                                 .insert(AttackSpecialty {value: Weaken})
+                                .insert(Delay {timer: Timer::from_seconds(0.2, true)})
                                 .insert_bundle(AttackBundle::default());
                         },
                         Element::ENone => print!("No player element!")
@@ -216,11 +220,11 @@ mut commands: Commands, asset_server: Res<AssetServer>, time: Res<Time>) {
 }
 
 
-pub fn remove_protection(mut query: Query<(Entity, &mut Delay, &ProtectionDelay)>, player_query: Query<&mut CurrentStatus, With<Player>>,
+pub fn remove_protection(mut query: Query<(Entity, &mut Delay, &ProtectionDelay)>, player_query: Query<(&mut CurrentStatus, &mut Speed), With<Player>>,
 mut commands: Commands, time: Res<Time>) {
     for (entity, mut delay, _) in query.iter_mut() {
         if delay.timer.tick(time.delta()).just_finished() {
-            player_query.for_each_mut(|mut status|{status.value = SNone});
+            player_query.for_each_mut(|(mut status, mut speed)|{status.value = SNone; speed.value = 75.});
             commands.entity(entity).despawn();
         }
     }
