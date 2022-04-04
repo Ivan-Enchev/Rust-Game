@@ -4,6 +4,7 @@ mod enemy_mechanics;
 mod collisions;
 mod spawn_entities;
 mod menus;
+mod ability_combinations;
 
 use bevy::prelude::*;
 use bevy_retrograde::prelude::*;
@@ -13,7 +14,9 @@ use crate::enemy_mechanics::*;
 use crate::collisions::*;
 use crate::spawn_entities::*;
 use crate::menus::*;
+use crate::ability_combinations::*;
 use crate::Element::ENone;
+use crate::Element::*;
 use rand::{thread_rng, Rng};
 
 fn main() {
@@ -50,6 +53,10 @@ fn main() {
                 .with_system(heal.system())
         )
         .add_system_set(
+            SystemSet::on_enter(GameState::ArtifactRoom)
+                .with_system(acquire_artifact.system())
+        )
+        .add_system_set(
             SystemSet::on_update(GameState::LevelSelection)
                 .with_system(level_select.system())
         )
@@ -66,13 +73,17 @@ fn main() {
         .add_system_set(
             SystemSet::on_update(GameState::Started)
                 .with_system(move_player.system())
+                .with_system(switch_weapon.system())
                 .with_system(detect_collisions.system())
                 .with_system(detect_enemy_collisions.system())
                 .with_system(move_slime.system())
                 .with_system(move_flame_spirit.system())
                 .with_system(player_attack.system())
                 .with_system(special_attack.system())
+                .with_system(second_ability.system())
                 .with_system(poison_entities.system())
+                .with_system(strong_poison_entities.system())
+                .with_system(death_entities.system())
                 .with_system(remove_protection.system())
                 .with_system(end_attack.system())
                 .with_system(despawn_defeated.system())
@@ -141,8 +152,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             arrow_pos: 20.,
             enemies: 0
         })
-        .insert(PlayerInventory {weapon_1: ENone, weapon_2: ENone, active_weapon: 0, p_health: 10,
-            coins: 0, p_element: ENone, can_attack: false}
+        .insert(PlayerInventory {weapons: [Fire, ENone], active_weapon: 0, p_health: 10,
+            coins: 0, p_element: ENone, can_attack: false, max_health: 10}
         );
 
     commands
@@ -153,6 +164,11 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn()
         .insert(Special1)
+        .insert(Delay {timer: Timer::from_seconds(1., false)});
+  
+    commands
+        .spawn()
+        .insert(Special2)
         .insert(Delay {timer: Timer::from_seconds(1., false)});
 
     commands
@@ -173,4 +189,15 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     
 }
 
-
+fn switch_weapon(keyboard_input: ResMut<Input<KeyCode>>, inventory: Query<&mut PlayerInventory>) {
+    if keyboard_input.just_pressed(KeyCode::LShift) {
+        inventory.for_each_mut(|mut inv| {
+            if inv.active_weapon == 0 {
+                inv.active_weapon = 1;
+            }
+            else {
+                inv.active_weapon = 0
+            }
+        })
+    }
+}

@@ -1,4 +1,5 @@
 use crate::structs::*;
+use crate::Status::*;
 use bevy::prelude::*;
 use bevy_retrograde::prelude::*;
 
@@ -50,14 +51,52 @@ pub fn move_flame_spirit(mut query: Query<(&mut Velocity, &mut GlobalTransform, 
     }
 }
 
-pub fn poison_entities(mut query: Query<(&mut Health, &mut PoisonDelay, Entity)>, time: Res<Time>) {
+pub fn poison_entities(query_set: QuerySet<(Query<(&mut Health, &mut PoisonDelay, Entity)>, Query<(&mut CurrentStatus, &mut Health), With<Player>>)>, time: Res<Time>,
+inventory: Query<&PlayerInventory>) {
+    let player_query = query_set.q1();
+    let query = query_set.q0();
+    query.for_each_mut(|(mut health, mut poison, _)| { 
+        if !poison.finished() {
+            if poison.timer.tick(time.delta()).just_finished() {
+                health.value -= 1;
+                if health.value <= 0 {
+                    player_query.for_each_mut(|(mut status, mut player_health)| {
+                        if status.value == PoisonHeal {
+                            inventory.for_each(|inv| {
+                                if player_health.value < inv.max_health {
+                                    player_health.value += 1;
+                                }
+                            });
+                            status.value = SNone;
+                        }
+                    });
+                }
+                poison.ticks -= 1;
+            }
+        }
+    });
+}
+
+pub fn strong_poison_entities(mut query: Query<(&mut Health, &mut SPoisonDelay, Entity)>, time: Res<Time>) {
     for (mut health, mut poison, _) in query.iter_mut() {
         if !poison.finished() {
             if poison.timer.tick(time.delta()).just_finished() {
-                print!("\npoison -1");
-                health.value -= 1;
+                health.value -= 2;
                 poison.ticks -= 1;
             }
+        }
+    }
+}
+
+pub fn death_entities(mut query: Query<(&mut Health, &mut DeathDelay, Entity)>, time: Res<Time>) {
+    for (mut health, mut death_delay, _) in query.iter_mut() {
+        if !death_delay.finished() {
+            if death_delay.timer.tick(time.delta()).just_finished() {
+                death_delay.ticks -= 1;
+            }
+        }
+        else {
+            health.value = 0;
         }
     }
 }

@@ -126,28 +126,27 @@ player_health_query: Query<&Health, With<Player>>, inventory: Query<&mut PlayerI
                 inventory.for_each_mut(|mut inventory|{
                     inventory.coins = gain_coins.gen_range(1..=(stage.level as i32 * 10));
                     let weapon_gen = gain_coins.gen_range(1..=5);
-                    match inventory.weapon_1 {
+                    match inventory.weapons[0] {
                         ENone => {
                             match weapon_gen {
-                                1 => inventory.weapon_1 = Darkness,
-                                2 => inventory.weapon_1 = Nature,
-                                3 => inventory.weapon_1 = Air,
-                                4 => inventory.weapon_1 = Water,
-                                5 => inventory.weapon_1 = Fire,
-                                _ => inventory.weapon_1 = ENone
+                                1 => inventory.weapons[0] = Darkness,
+                                2 => inventory.weapons[0] = Nature,
+                                3 => inventory.weapons[0] = Air,
+                                4 => inventory.weapons[0] = Water,
+                                5 => inventory.weapons[0] = Fire,
+                                _ => inventory.weapons[0] = ENone
                             }
                         },
                         _ => {
                             match weapon_gen {
-                                1 => inventory.weapon_2 = Darkness,
-                                2 => inventory.weapon_2 = Nature,
-                                3 => inventory.weapon_2 = Air,
-                                4 => inventory.weapon_2 = Water,
-                                5 => inventory.weapon_2 = Fire,
-                                _ => inventory.weapon_2 = ENone
+                                1 => inventory.weapons[1] = Darkness,
+                                2 => inventory.weapons[1] = Nature,
+                                3 => inventory.weapons[1] = Air,
+                                4 => inventory.weapons[1] = Water,
+                                5 => inventory.weapons[1] = Fire,
+                                _ => inventory.weapons[1] = ENone
                             }
                         }
-                        //Need to add choice for weapon switch
                     }
                 });
             }
@@ -169,6 +168,22 @@ key_delay: Query<&mut Delay, With<KeyDelay>>) {
         inventory.p_health += gain_heatlh.gen_range(1..=4);
         if inventory.p_health > 10 {
             inventory.p_health = 10;
+        }
+        stage_query.for_each_mut(|mut stage| {stage.next_level();});
+        key_delay.for_each_mut(|mut delay| {delay.timer.reset()});
+        game_state.set(GameState::LevelSelection).unwrap();
+    })
+}
+
+pub fn acquire_artifact(mut game_state: ResMut<State<GameState>>, stage_query: Query<&mut GameStage>, inventory: Query<&mut PlayerInventory>,
+key_delay: Query<&mut Delay, With<KeyDelay>>, player_query: Query<&mut Speed, With<Player>>) {
+    inventory.for_each_mut(|mut inventory| {
+        let mut rng = thread_rng();
+        let artifact = rng.gen_range(1..=2);
+        match artifact {
+            1 => inventory.max_health += 1,
+            2 => player_query.for_each_mut(|mut speed|{speed.value += 10.}),
+            _ => print!("Didn't get artifact")
         }
         stage_query.for_each_mut(|mut stage| {stage.next_level();});
         key_delay.for_each_mut(|mut delay| {delay.timer.reset()});
