@@ -421,3 +421,34 @@ pub fn spawn_elements(mut commands: Commands, asset_server: Res<AssetServer>) {
         })
         .insert(ChoiceArrow);
 }
+
+pub fn spawn_shop(mut commands: Commands, asset_server: Res<AssetServer>, inventory: Query<&PlayerInventory>) {
+    let heal = asset_server.load("shop_heal.png");
+    let weapon = asset_server.load("shop_weapon.png");
+    let arrow = asset_server.load("choice_arrow.png"); 
+
+    inventory.for_each(|inventory| {print!("Entered shop! with {} coins", inventory.coins);});
+    commands
+        .spawn_bundle(SpriteBundle {
+            image: heal.clone(),
+            transform: Transform::from_xyz(30., 0., 0.),
+            ..Default::default()
+        })
+        .insert(ShopEntity);
+
+    commands
+        .spawn_bundle(SpriteBundle {
+            image: weapon.clone(),
+            transform: Transform::from_xyz(-30., 0., 0.),
+            ..Default::default()
+        })
+        .insert(ShopEntity);
+
+    commands
+        .spawn_bundle(SpriteBundle {
+            image: arrow.clone(),
+            transform: Transform::from_xyz(-30., -25., 0.),
+            ..Default::default()
+        })
+        .insert(ChoiceArrow);
+}

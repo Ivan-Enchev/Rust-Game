@@ -48,7 +48,7 @@ damage_query: Query<(Entity, &Damage), (With<Enemy>, Without<Player>)>) {
     }  
 }
 
-pub fn detect_enemy_collisions(mut events: EventReader<CollisionEvent>,
+pub fn detect_enemy_collisions(mut events: EventReader<CollisionEvent>, 
 mut enemy_query: Query<(Entity, &mut Health, &mut CurrentStatus, &mut Speed), (With<Enemy>, Without<Player>)>,
 damage: Query<(Entity, &Damage, &AttackSpecialty)>, mut commands: Commands) {
     for event in events.iter().filter(|e| e.is_started()) {   

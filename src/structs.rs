@@ -94,10 +94,13 @@ pub struct PlayerInventory {
     pub max_health: i16,
     pub coins: i32,
     pub p_element: Element,
-    pub can_attack: bool
+    pub can_attack: bool,
+    pub shop_choice: i8,
 }
 
 pub struct EChoice;
+
+pub struct ShopEntity;
 
 pub struct AttackSpecialty {
     pub value: Specialty

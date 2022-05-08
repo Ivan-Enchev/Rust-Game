@@ -57,6 +57,18 @@ fn main() {
                 .with_system(acquire_artifact.system())
         )
         .add_system_set(
+            SystemSet::on_enter(GameState::Shop)
+                .with_system(spawn_shop.system())
+        )
+        .add_system_set(
+            SystemSet::on_update(GameState::Shop)
+                .with_system(shop.system())
+        )
+        .add_system_set(
+            SystemSet::on_exit(GameState::Shop)
+                .with_system(shop_cleanup.system())
+        )
+        .add_system_set(
             SystemSet::on_update(GameState::LevelSelection)
                 .with_system(level_select.system())
         )
@@ -153,7 +165,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             enemies: 0
         })
         .insert(PlayerInventory {weapons: [Fire, ENone], active_weapon: 0, p_health: 10,
-            coins: 0, p_element: ENone, can_attack: false, max_health: 10}
+            coins: 100, p_element: ENone, can_attack: false, max_health: 10, shop_choice: 0}
         );
 
     commands
@@ -165,7 +177,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         .spawn()
         .insert(Special1)
         .insert(Delay {timer: Timer::from_seconds(1., false)});
-  
+
     commands
         .spawn()
         .insert(Special2)

@@ -121,10 +121,10 @@ player_health_query: Query<&Health, With<Player>>, inventory: Query<&mut PlayerI
     stage_query.for_each_mut(|mut stage| {
         if stage.enemies <= 0 {
             let mut gain_coins = thread_rng();
-            inventory.for_each_mut(|mut inventory|{inventory.coins = gain_coins.gen_range(1..=(stage.level as i32 * 5))});
+            inventory.for_each_mut(|mut inventory|{inventory.coins += gain_coins.gen_range(1..=(stage.level as i32 * 5))});
             if stage.rooms_1[stage.active_room as usize] == 4 {
                 inventory.for_each_mut(|mut inventory|{
-                    inventory.coins = gain_coins.gen_range(1..=(stage.level as i32 * 10));
+                    inventory.coins += gain_coins.gen_range(1..=(stage.level as i32 * 10));
                     let weapon_gen = gain_coins.gen_range(1..=5);
                     match inventory.weapons[0] {
                         ENone => {
@@ -189,6 +189,102 @@ key_delay: Query<&mut Delay, With<KeyDelay>>, player_query: Query<&mut Speed, Wi
         key_delay.for_each_mut(|mut delay| {delay.timer.reset()});
         game_state.set(GameState::LevelSelection).unwrap();
     })
+}
+
+pub fn shop(mut game_state: ResMut<State<GameState>>, stage_query: Query<&mut GameStage>, inventory: Query<&mut PlayerInventory>,
+key_delay: Query<&mut Delay, With<KeyDelay>>, player_query: Query<&mut Health, With<Player>>, keyboard_input: ResMut<Input<KeyCode>>, time: Res<Time>,
+arrow_query: Query<&mut GlobalTransform, With<ChoiceArrow>>) {
+    
+    inventory.for_each_mut(|mut inventory| {
+        key_delay.for_each_mut(|mut delay| {
+            if delay.timer.tick(time.delta()).finished() {
+                if keyboard_input.just_pressed(KeyCode::Z) {
+                    let mut rng = thread_rng();
+                    let gain = rng.gen_range(1..=5);
+                    print!("\nrng: {}", gain);
+                    match inventory.shop_choice {
+                        1 => {
+                            if inventory.coins >= 50 {
+                                player_query.for_each_mut(|mut health| {
+                                    health.value += gain; 
+                                    print!("\nPlayer gained {} healt for 50 coins", gain)
+                                });
+                                inventory.coins -= 50;
+                            }
+                            else {
+                                print!("Not enough coins!")
+                            }
+                        },
+                        0 => {
+                            if inventory.coins >= 100 {
+                                match gain {
+                                    1 => {
+                                        inventory.weapons[1] = Darkness;
+                                        print!("\nPlayer got Dark weapon for 100 coins");
+                                    }
+                                    2 => {
+                                        inventory.weapons[1] = Nature;
+                                        print!("\nPlayer got Nature weapon for 100 coins");
+                                    }
+                                    3 => {
+                                        inventory.weapons[1] = Air;
+                                        print!("\nPlayer got Air weapon for 100 coins");
+                                    }
+                                    4 => {
+                                        inventory.weapons[1] = Water;
+                                        print!("\nPlayer got Water weapon for 100 coins");
+                                    }
+                                    5 => {
+                                        inventory.weapons[1] = Fire;
+                                        print!("\nPlayer got Fire weapon for 100 coins");
+                                    }
+                                    _ => print!("Shop error, no rng.")
+                                }
+                                inventory.coins -= 100;
+                            }
+                            else {
+                                print!("Not enough coins!")
+                            }
+                        }
+                        _ => print!("Shop error")
+                    }
+                    stage_query.for_each_mut(|mut stage| {stage.next_level();});
+                    delay.timer.reset();
+                    key_delay.for_each_mut(|mut delay|delay.timer.reset());
+                    inventory.shop_choice = 0;
+                    game_state.set(GameState::LevelSelection).unwrap();
+                }
+
+                if keyboard_input.just_pressed(KeyCode::X) {
+                    stage_query.for_each_mut(|mut stage| {stage.next_level();});
+                    delay.timer.reset();
+                    key_delay.for_each_mut(|mut delay|delay.timer.reset());
+                    inventory.shop_choice = 0;
+                    game_state.set(GameState::LevelSelection).unwrap();
+                }
+
+                if keyboard_input.just_pressed(KeyCode::Left) || keyboard_input.just_pressed(KeyCode::Right) {
+                    if inventory.shop_choice == 1 {
+                        inventory.shop_choice = 0;
+                        arrow_query.for_each_mut(|mut arrow| {arrow.translation.x -= 60.});
+                        print!("\nOn health");
+                    }
+                    else {
+                        inventory.shop_choice = 1;
+                        arrow_query.for_each_mut(|mut arrow| {arrow.translation.x += 60.});
+                        print!("\nOn weapon");
+                    }
+                    
+                }
+                
+            }
+        });
+    });
+}
+
+pub fn shop_cleanup(shop_query: Query<(Entity, &ShopEntity)>, mut commands: Commands, arrow_query: Query<(Entity, &ChoiceArrow)>) {
+    arrow_query.for_each(|(arrow, _)| {commands.entity(arrow).despawn()});
+    shop_query.for_each(|(entity, _)| {commands.entity(entity).despawn()});
 }
 
 pub fn element_select(stage_query: Query<&mut GameStage>, arrow_query: Query<&mut GlobalTransform, With<ChoiceArrow>>,
