@@ -2,6 +2,7 @@ use crate::structs::*;
 use bevy::prelude::*;
 use bevy_retrograde::prelude::*;
 use crate::Status::*;
+use crate::Direction::*;
 use crate::Specialty::*;
 
 pub fn move_player(keyboard_input: Res<Input<KeyCode>>, mut query: Query<(&mut Velocity, &GlobalTransform, &Speed), With<Player>>,
@@ -38,36 +39,40 @@ mut cam_query: Query<&mut Transform, With<Camera>>)  {
 }
 
 pub fn player_attack(keyboard_input: Res<Input<KeyCode>>, pos_query: Query<&GlobalTransform, With<Player>>,
-mut commands: Commands, asset_server: Res<AssetServer>) {
+mut commands: Commands, asset_server: Res<AssetServer>, inventory: Query<&mut PlayerInventory>) {
     let mut sword_txt = "sword.png";
     for position in pos_query.iter() {
         let mut attack_direction_x = 0.0;
         let mut attack_direction_y = 0.0;
 
         if keyboard_input.pressed(KeyCode::Right) {
-            attack_direction_x = 13.;
+            inventory.for_each_mut(|mut inventory| {inventory.facing = Right});
         }
 
         if keyboard_input.pressed(KeyCode::Left) {
-            attack_direction_x = -13.;
-            sword_txt = "sword_r.png";
+            inventory.for_each_mut(|mut inventory| {inventory.facing = Left});
         }
 
         if keyboard_input.pressed(KeyCode::Up) {
-            attack_direction_y = -15.;
-            sword_txt = "sword_u.png";
+            inventory.for_each_mut(|mut inventory| {inventory.facing = Up});
         }
 
         if keyboard_input.pressed(KeyCode::Down) {
-            attack_direction_y = 15.;
-            sword_txt = "sword_d.png";
+            inventory.for_each_mut(|mut inventory| {inventory.facing = Down});
         }
 
-        let sword = asset_server.load(sword_txt);
         if keyboard_input.just_pressed(KeyCode::Z) {
             if attack_direction_x == 0. && attack_direction_y == 0. {
-                attack_direction_x = 10.;
+                inventory.for_each_mut(|inventory| {
+                    match inventory.facing {
+                        Right => attack_direction_x = 13.,
+                        Left => {attack_direction_x = -13.; sword_txt = "sword_r.png";}
+                        Up => {attack_direction_y = -15.; sword_txt = "sword_u.png";}
+                        Down => {attack_direction_y = 15.; sword_txt = "sword_d.png";}
+                    }
+                });
             }
+            let sword = asset_server.load(sword_txt);
             commands
                 .spawn_bundle(SpriteBundle {
                     image: sword.clone(),
@@ -108,31 +113,15 @@ mut commands: Commands, asset_server: Res<AssetServer>, time: Res<Time>) {
         let mut attack_direction_x = 0.0;
         let mut attack_direction_y = 0.0;
 
-        if keyboard_input.pressed(KeyCode::Right) {
-            attack_direction_x = 30.;
-        }
-
-        if keyboard_input.pressed(KeyCode::Left) {
-            attack_direction_x = -30.;
-        }
-
-        if keyboard_input.pressed(KeyCode::Up) {
-            attack_direction_y = -30.;
-        }
-
-        if keyboard_input.pressed(KeyCode::Down) {
-            attack_direction_y = 30.;
-        }
-
         inventory.for_each_mut(|mut inventory| {
             special_delay.for_each_mut(|mut delay|{if delay.timer.tick(time.delta()).just_finished(){inventory.can_attack = true;}});
             if inventory.can_attack {
                 if keyboard_input.just_pressed(KeyCode::X) {
-                    if attack_direction_x == 0. && attack_direction_y == 0. {
-                        attack_direction_x = 10.;
-                    }
-                    if attack_direction_x == 0. && attack_direction_y == 0. {
-                        attack_direction_x = 30.;
+                    match inventory.facing {
+                        Right => attack_direction_x = 30.,
+                        Left => attack_direction_x = -30.,
+                        Up => attack_direction_y = -30.,
+                        Down => attack_direction_y = 30.
                     }
                     
                     match inventory.p_element {

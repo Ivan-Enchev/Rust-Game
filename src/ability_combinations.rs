@@ -4,6 +4,7 @@ use bevy_retrograde::prelude::*;
 use crate::Status::*;
 use crate::Element::*;
 use crate::Specialty::*;
+use crate::Direction::*;
 
 pub fn second_ability(keyboard_input: Res<Input<KeyCode>>, mut pos_query: Query<(&GlobalTransform, &mut CurrentStatus, &mut Health, &mut Speed), With<Player>>,
 special_delay: Query<&mut Delay, With<Special2>>, inventory: Query<&mut PlayerInventory>, 
@@ -31,31 +32,15 @@ mut commands: Commands, asset_server: Res<AssetServer>, time: Res<Time>) {
         let mut attack_direction_x = 0.0;
         let mut attack_direction_y = 0.0;
 
-        if keyboard_input.pressed(KeyCode::Right) {
-            attack_direction_x = 30.;
-        }
-
-        if keyboard_input.pressed(KeyCode::Left) {
-            attack_direction_x = -30.;
-        }
-
-        if keyboard_input.pressed(KeyCode::Up) {
-            attack_direction_y = -30.;
-        }
-
-        if keyboard_input.pressed(KeyCode::Down) {
-            attack_direction_y = 30.;
-        }
-
         inventory.for_each_mut(|mut inventory| {
             special_delay.for_each_mut(|mut delay|{if delay.timer.tick(time.delta()).just_finished(){inventory.can_attack = true;}});
             if inventory.can_attack {
                 if keyboard_input.just_pressed(KeyCode::C) {
-                    if attack_direction_x == 0. && attack_direction_y == 0. {
-                        attack_direction_x = 10.;
-                    }
-                    if attack_direction_x == 0. && attack_direction_y == 0. {
-                        attack_direction_x = 30.;
+                    match inventory.facing {
+                        Right => attack_direction_x = 30.,
+                        Left => attack_direction_x = -30.,
+                        Up => attack_direction_y = -30.,
+                        Down => attack_direction_y = 30.
                     }
                     
                     match inventory.p_element {

@@ -201,7 +201,7 @@ arrow_query: Query<&mut GlobalTransform, With<ChoiceArrow>>) {
                 if keyboard_input.just_pressed(KeyCode::Z) {
                     let mut rng = thread_rng();
                     let gain = rng.gen_range(1..=5);
-                    print!("\nrng: {}", gain);
+                   // print!("\nrng: {}", gain);
                     match inventory.shop_choice {
                         1 => {
                             if inventory.coins >= 50 {
@@ -267,12 +267,12 @@ arrow_query: Query<&mut GlobalTransform, With<ChoiceArrow>>) {
                     if inventory.shop_choice == 1 {
                         inventory.shop_choice = 0;
                         arrow_query.for_each_mut(|mut arrow| {arrow.translation.x -= 60.});
-                        print!("\nOn health");
+                        //print!("\nOn health");
                     }
                     else {
                         inventory.shop_choice = 1;
                         arrow_query.for_each_mut(|mut arrow| {arrow.translation.x += 60.});
-                        print!("\nOn weapon");
+                        //print!("\nOn weapon");
                     }
                     
                 }

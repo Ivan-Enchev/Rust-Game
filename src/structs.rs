@@ -21,6 +21,13 @@ pub enum GameState {
     ElementSelect
 }
 
+pub enum Direction {
+    Left,
+    Right,
+    Down,
+    Up
+}
+
 pub enum Element {
     Darkness, 
     Nature,
@@ -96,6 +103,7 @@ pub struct PlayerInventory {
     pub p_element: Element,
     pub can_attack: bool,
     pub shop_choice: i8,
+    pub facing: Direction
 }
 
 pub struct EChoice;

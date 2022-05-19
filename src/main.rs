@@ -16,7 +16,7 @@ use crate::spawn_entities::*;
 use crate::menus::*;
 use crate::ability_combinations::*;
 use crate::Element::ENone;
-use crate::Element::*;
+use crate::Direction::Right;
 use rand::{thread_rng, Rng};
 
 fn main() {
@@ -100,6 +100,8 @@ fn main() {
                 .with_system(end_attack.system())
                 .with_system(despawn_defeated.system())
                 .with_system(level_end_system.system())
+                .with_system(debug_defeat.system())
+                .with_system(debug_win.system())
         )
         .add_system_set(
             SystemSet::on_exit(GameState::Started)
@@ -109,8 +111,6 @@ fn main() {
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let start_button = asset_server.load("start_button.png");
-    let quit_button = asset_server.load("quit_button.png");
     
     commands.spawn_bundle(CameraBundle {
         camera: Camera {
@@ -164,8 +164,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             arrow_pos: 20.,
             enemies: 0
         })
-        .insert(PlayerInventory {weapons: [Fire, ENone], active_weapon: 0, p_health: 10,
-            coins: 100, p_element: ENone, can_attack: false, max_health: 10, shop_choice: 0}
+        .insert(PlayerInventory {weapons: [ENone, ENone], active_weapon: 0, p_health: 10,
+            coins: 0, p_element: ENone, can_attack: false, max_health: 10, shop_choice: 0, facing: Right}
         );
 
     commands
@@ -182,6 +182,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         .spawn()
         .insert(Special2)
         .insert(Delay {timer: Timer::from_seconds(1., false)});
+        
+    let start_button = asset_server.load("start_button.png");
+    let quit_button = asset_server.load("quit_button.png");
 
     commands
         .spawn_bundle(SpriteBundle {
@@ -211,5 +214,17 @@ fn switch_weapon(keyboard_input: ResMut<Input<KeyCode>>, inventory: Query<&mut P
                 inv.active_weapon = 0
             }
         })
+    }
+}
+
+fn debug_defeat(keyboard_input: ResMut<Input<KeyCode>>, player_health_query: Query<&mut Health, With<Player>>) {
+    if keyboard_input.just_pressed(KeyCode::P) {
+        player_health_query.for_each_mut(|mut health|{health.value = 0});
+    }
+}
+
+fn debug_win(keyboard_input: ResMut<Input<KeyCode>>, stage_query: Query<&mut GameStage>) {
+    if keyboard_input.just_pressed(KeyCode::O) {
+        stage_query.for_each_mut(|mut stage|{stage.enemies = 0});
     }
 }
